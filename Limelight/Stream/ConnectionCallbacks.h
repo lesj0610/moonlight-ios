@@ -22,4 +22,8 @@
 - (void) setControllerLed:(uint16_t)controllerNumber r:(uint8_t)r g:(uint8_t)g b:(uint8_t)b;
 - (void) videoContentShown;
 
+// The host's mouse pointer for the client to draw. image is nil when the
+// image has not changed, and is BGRA with straight alpha otherwise.
+- (void) localCursorUpdate:(BOOL)visible image:(NSData*)image width:(int)width height:(int)height hotX:(int)hotX hotY:(int)hotY scale:(int)scale;
+
 @end

@@ -243,6 +243,7 @@ BOOL isCustomResolution(CGSize res) {
     [self.touchModeSelector setSelectedSegmentIndex:currentSettings.absoluteTouchMode ? 1 : 0];
     [self.touchModeSelector addTarget:self action:@selector(touchModeChanged) forControlEvents:UIControlEventValueChanged];
     [self.statsOverlaySelector setSelectedSegmentIndex:currentSettings.statsOverlay ? 1 : 0];
+    [self.localCursorSelector setSelectedSegmentIndex:currentSettings.localCursor ? 1 : 0];
     [self.btMouseSelector setSelectedSegmentIndex:currentSettings.btMouseSupport ? 1 : 0];
     [self.optimizeSettingsSelector setSelectedSegmentIndex:currentSettings.optimizeGames ? 1 : 0];
     [self.framePacingSelector setSelectedSegmentIndex:currentSettings.useFramePacing ? 1 : 0];
@@ -554,6 +555,9 @@ BOOL isCustomResolution(CGSize res) {
                       btMouseSupport:btMouseSupport
                    absoluteTouchMode:absoluteTouchMode
                         statsOverlay:statsOverlay];
+
+    [[NSUserDefaults standardUserDefaults] setBool:[self.localCursorSelector selectedSegmentIndex] == 1
+                                            forKey:@"localCursor"];
 }
 
 - (void)didReceiveMemoryWarning {

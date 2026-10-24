@@ -25,7 +25,7 @@ static const int REFERENCE_HEIGHT = 720;
     UIGestureRecognizer* remoteLongPressRecognizer;
 #endif
     
-    UIView* view;
+    StreamView* view;
 }
 
 - (id)initWithView:(StreamView*)view {
@@ -88,6 +88,17 @@ static const int REFERENCE_HEIGHT = 720;
         if (touchLocation.x != currentLocation.x ||
             touchLocation.y != currentLocation.y)
         {
+#if !TARGET_OS_TV
+            // The pointer drawn here follows the finger one to one
+            if ([view moveLocalCursorBy:CGPointMake(currentLocation.x - touchLocation.x, currentLocation.y - touchLocation.y)]) {
+                touchLocation = currentLocation;
+                if ([self isConfirmedMove:touchLocation from:originalLocation]) {
+                    touchMoved = true;
+                }
+                return;
+            }
+#endif
+            
             int deltaX = (currentLocation.x - touchLocation.x) * (REFERENCE_WIDTH / view.bounds.size.width);
             int deltaY = (currentLocation.y - touchLocation.y) * (REFERENCE_HEIGHT / view.bounds.size.height);
             

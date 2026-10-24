@@ -371,6 +371,19 @@ void ClSetControllerLED(uint16_t controllerNumber, uint8_t r, uint8_t g, uint8_t
     [_callbacks setControllerLed:controllerNumber r:r g:g b:b];
 }
 
+void ClLocalCursorUpdate(const LOCAL_CURSOR_UPDATE* update)
+{
+    // The image is only valid during this call
+    NSData* image = update->image != NULL ? [NSData dataWithBytes:update->image length:(NSUInteger)update->width * update->height * 4] : nil;
+    [_callbacks localCursorUpdate:update->visible
+                            image:image
+                            width:update->width
+                           height:update->height
+                             hotX:update->hotX
+                             hotY:update->hotY
+                            scale:update->scale];
+}
+
 -(void) terminate
 {
     // Interrupt any action blocking LiStartConnection(). This is
@@ -491,6 +504,7 @@ void ClSetControllerLED(uint16_t controllerNumber, uint8_t r, uint8_t g, uint8_t
     _clCallbacks.rumbleTriggers = ClRumbleTriggers;
     _clCallbacks.setMotionEventState = ClSetMotionEventState;
     _clCallbacks.setControllerLED = ClSetControllerLED;
+    _clCallbacks.localCursorUpdate = ClLocalCursorUpdate;
 
     return self;
 }

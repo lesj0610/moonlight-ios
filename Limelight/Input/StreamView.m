@@ -25,6 +25,8 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     NSMutableSet* keysDown;
     
     float streamAspectRatio;
+    int streamWidth;
+    int streamHeight;
     
     // iOS 13.4 mouse support
     NSInteger lastMouseButtonMask;
@@ -44,6 +46,19 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     BOOL hasUserInteracted;
     
     NSDictionary<NSString *, NSNumber *> *dictCodes;
+    
+#if !TARGET_OS_TV
+    // The host's mouse pointer, drawn here while the host leaves it out of
+    // the video. Its size and hot spot are in host pixels, and its position
+    // is a fraction of the video area, known once the pointer has moved.
+    BOOL localCursorActive;
+    BOOL hostCursorVisible;
+    UIImageView* hostCursorView;
+    CGSize hostCursorSize;
+    CGPoint hostCursorHotSpot;
+    BOOL localCursorPlaced;
+    CGPoint localCursorPosition;
+#endif
 }
 
 - (void) setupStreamView:(ControllerSupport*)controllerSupport
@@ -51,6 +66,8 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
                   config:(StreamConfiguration*)streamConfig {
     self->interactionDelegate = interactionDelegate;
     self->streamAspectRatio = (float)streamConfig.width / (float)streamConfig.height;
+    self->streamWidth = streamConfig.width;
+    self->streamHeight = streamConfig.height;
     
     TemporarySettings* settings = [[[DataManager alloc] init] getSettings];
     
@@ -453,7 +470,7 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
         UITouch* touch = [touches anyObject];
         if (touch.type == UITouchTypeIndirectPointer) {
             if (@available(iOS 14.0, *)) {
-                if ([GCMouse current] != nil) {
+                if ([GCMouse current] != nil && !localCursorActive) {
                     // We'll handle this with GCMouse. Do nothing here.
                     return YES;
                 }
@@ -522,7 +539,7 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
         UITouch *touch = [touches anyObject];
         if (touch.type == UITouchTypeIndirectPointer) {
             if (@available(iOS 14.0, *)) {
-                if ([GCMouse current] != nil) {
+                if ([GCMouse current] != nil && !localCursorActive) {
                     // We'll handle this with GCMouse. Do nothing here.
                     return;
                 }
@@ -652,13 +669,108 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
             lastMouseY = normalizedLocation.y;
         }
     }
+    
+    if (localCursorActive) {
+        localCursorPosition = CGPointMake(normalizedLocation.x / videoSize.width, normalizedLocation.y / videoSize.height);
+        localCursorPlaced = YES;
+        [self layoutHostCursor];
+    }
+}
+
+- (BOOL) startLocalCursor {
+    if (!(LiGetHostFeatureFlags() & LI_FF_LOCAL_CURSOR) || LiSetLocalCursor(true) != 0) {
+        return NO;
+    }
+    
+    hostCursorView = [[UIImageView alloc] init];
+    hostCursorView.userInteractionEnabled = NO;
+    hostCursorView.hidden = YES;
+    // Above the video, whose layer is added straight to this view's layer
+    hostCursorView.layer.zPosition = 1;
+    [self addSubview:hostCursorView];
+    
+    localCursorActive = YES;
+    return YES;
+}
+
+- (BOOL) isLocalCursorActive {
+    return localCursorActive;
+}
+
+- (void) setHostCursorVisible:(BOOL)visible image:(NSData*)image width:(int)width height:(int)height hotX:(int)hotX hotY:(int)hotY scale:(int)scale {
+    if (!localCursorActive) {
+        return;
+    }
+    
+    hostCursorVisible = visible;
+    if (image != nil) {
+        // BGRA bytes, which is ARGB read as little endian words, with straight alpha
+        CGDataProviderRef provider = CGDataProviderCreateWithCFData((__bridge CFDataRef)image);
+        CGColorSpaceRef colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceSRGB);
+        CGImageRef cgImage = CGImageCreate(width, height, 8, 32, width * 4, colorSpace,
+                                           kCGBitmapByteOrder32Little | (CGBitmapInfo)kCGImageAlphaFirst,
+                                           provider, NULL, false, kCGRenderingIntentDefault);
+        hostCursorView.image = cgImage != NULL ? [UIImage imageWithCGImage:cgImage] : nil;
+        CGImageRelease(cgImage);
+        CGColorSpaceRelease(colorSpace);
+        CGDataProviderRelease(provider);
+        
+        // The host shrinks large pointers by a whole factor before sending them
+        hostCursorSize = CGSizeMake(width * scale, height * scale);
+        hostCursorHotSpot = CGPointMake(hotX * scale, hotY * scale);
+    }
+    
+    [self layoutHostCursor];
+}
+
+- (BOOL) moveLocalCursorBy:(CGPoint)delta {
+    if (!localCursorActive) {
+        return NO;
+    }
+    
+    if (!localCursorPlaced) {
+        // Where the host has it is not known here, so start from the middle
+        localCursorPosition = CGPointMake(0.5, 0.5);
+        localCursorPlaced = YES;
+    }
+    
+    CGSize videoSize = [self getVideoAreaSize];
+    localCursorPosition = CGPointMake(MIN(MAX(localCursorPosition.x + delta.x / videoSize.width, 0), 1),
+                                      MIN(MAX(localCursorPosition.y + delta.y / videoSize.height, 0), 1));
+    LiSendMousePositionEvent((short)lround(localCursorPosition.x * streamWidth), (short)lround(localCursorPosition.y * streamHeight),
+                             (short)streamWidth, (short)streamHeight);
+    [self layoutHostCursor];
+    return YES;
+}
+
+- (void) layoutHostCursor {
+    if (!localCursorActive) {
+        return;
+    }
+    
+    CGSize videoSize = [self getVideoAreaSize];
+    CGPoint videoOrigin = CGPointMake(self.bounds.origin.x + self.bounds.size.width / 2 - videoSize.width / 2,
+                                      self.bounds.origin.y + self.bounds.size.height / 2 - videoSize.height / 2);
+    
+    // Host pixels are scaled to points as the video is
+    CGFloat pointsPerPixel = videoSize.width / streamWidth;
+    hostCursorView.frame = CGRectMake(videoOrigin.x + localCursorPosition.x * videoSize.width - hostCursorHotSpot.x * pointsPerPixel,
+                                      videoOrigin.y + localCursorPosition.y * videoSize.height - hostCursorHotSpot.y * pointsPerPixel,
+                                      hostCursorSize.width * pointsPerPixel,
+                                      hostCursorSize.height * pointsPerPixel);
+    hostCursorView.hidden = !localCursorPlaced || !hostCursorVisible || hostCursorView.image == nil;
+}
+
+- (void) layoutSubviews {
+    [super layoutSubviews];
+    [self layoutHostCursor];
 }
 
 - (UIPointerRegion *)pointerInteraction:(UIPointerInteraction *)interaction
                        regionForRequest:(UIPointerRegionRequest *)request
                           defaultRegion:(UIPointerRegion *)defaultRegion API_AVAILABLE(ios(13.4)) {
     if (@available(iOS 14.0, *)) {
-        if ([GCMouse current] != nil) {
+        if ([GCMouse current] != nil && !localCursorActive) {
             // We'll handle this with GCMouse. Do nothing here.
             return nil;
         }
@@ -918,7 +1030,15 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
         return;
     }
     
-    LiSendMouseMoveEvent(shortX, shortY);
+    BOOL movedLocally = NO;
+#if !TARGET_OS_TV
+    // The pointer drawn here moves by the same distance in host pixels
+    CGSize videoSize = [self getVideoAreaSize];
+    movedLocally = [self moveLocalCursorBy:CGPointMake(shortX * videoSize.width / streamWidth, shortY * videoSize.height / streamHeight)];
+#endif
+    if (!movedLocally) {
+        LiSendMouseMoveEvent(shortX, shortY);
+    }
     
     accumulatedMouseDeltaX -= shortX;
     accumulatedMouseDeltaY -= shortY;
