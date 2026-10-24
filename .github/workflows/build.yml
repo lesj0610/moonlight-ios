@@ -23,13 +23,19 @@ permissions:
 jobs:
   ios:
     name: iOS / iPadOS
-    runs-on: macos-latest
+    # Xcode 26 rather than whatever macos-latest moves to. Apple has said the
+    # next major Xcode drops UIDesignRequiresCompatibility, which the release
+    # builds rely on to keep the pre-iOS 26 design.
+    runs-on: macos-26
 
     steps:
       - name: Check out
         uses: actions/checkout@v7
         with:
           submodules: recursive
+
+      - name: Select Xcode 26
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_26.*.app | grep -v -i beta | sort -V | tail -1)"
 
       - name: Download iOS platform
         run: xcodebuild -downloadPlatform iOS
