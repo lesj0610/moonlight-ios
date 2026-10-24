@@ -55,13 +55,13 @@
         return;
     }
     else if (pairStatus == NULL || appversion == NULL || serverState == NULL) {
-        [_callbacks launchFailed:@"Failed to connect to PC"];
+        [_callbacks launchFailed:NSLocalizedString(@"Failed to connect to PC", nil)];
         return;
     }
     
     if (![pairStatus isEqualToString:@"1"]) {
         // Not paired
-        [_callbacks launchFailed:@"Device not paired to PC"];
+        [_callbacks launchFailed:NSLocalizedString(@"Device not paired to PC", nil)];
         return;
     }
     
@@ -71,7 +71,7 @@
         // We can't directly identify Pascal, but we can look for HEVC Main10 which was added in the same generation.
         NSString* codecSupport = [serverInfoResp getStringTag:@"ServerCodecModeSupport"];
         if (codecSupport == nil || !([codecSupport intValue] & 0x200)) {
-            [_callbacks launchFailed:@"Your host PC's GPU doesn't support streaming video resolutions over 4K."];
+            [_callbacks launchFailed:NSLocalizedString(@"Your host PC's GPU doesn't support streaming video resolutions over 4K.", nil)];
             return;
         }
     }
@@ -120,7 +120,7 @@
         Log(LOG_E, @"Failed Launch Response: %@", launchResp.statusMessage);
         return FALSE;
     } else if (gameSession == NULL || [gameSession isEqualToString:@"0"]) {
-        [_callbacks launchFailed:@"Failed to launch app"];
+        [_callbacks launchFailed:NSLocalizedString(@"Failed to launch app", nil)];
         Log(LOG_E, @"Failed to parse game session");
         return FALSE;
     }
@@ -138,7 +138,7 @@
         Log(LOG_E, @"Failed Resume Response: %@", resumeResp.statusMessage);
         return FALSE;
     } else if (resume == NULL || [resume isEqualToString:@"0"]) {
-        [_callbacks launchFailed:@"Failed to resume app"];
+        [_callbacks launchFailed:NSLocalizedString(@"Failed to resume app", nil)];
         Log(LOG_E, @"Failed to parse resume response");
         return FALSE;
     }
@@ -161,15 +161,15 @@
     uint32_t rtt, variance;
     NSString* latencyString;
     if (LiGetEstimatedRttInfo(&rtt, &variance)) {
-        latencyString = [NSString stringWithFormat:@"%u ms (variance: %u ms)", rtt, variance];
+        latencyString = [NSString stringWithFormat:NSLocalizedString(@"%u ms (variance: %u ms)", nil), rtt, variance];
     }
     else {
-        latencyString = @"N/A";
+        latencyString = NSLocalizedString(@"N/A", nil);
     }
     
     NSString* hostProcessingString;
     if (stats.framesWithHostProcessingLatency != 0) {
-        hostProcessingString = [NSString stringWithFormat:@"\nHost processing latency min/max/avg: %.1f/%.1f/%.1f ms",
+        hostProcessingString = [NSString stringWithFormat:NSLocalizedString(@"\nHost processing latency min/max/avg: %.1f/%.1f/%.1f ms", nil),
                                 stats.minHostProcessingLatency / 10.f,
                                 stats.maxHostProcessingLatency / 10.f,
                                 (float)stats.totalHostProcessingLatency / stats.framesWithHostProcessingLatency / 10.f];
@@ -179,7 +179,7 @@
     }
     
     float interval = stats.endTime - stats.startTime;
-    return [NSString stringWithFormat:@"Video stream: %dx%d %.2f FPS (Codec: %@)\nFrames dropped by your network connection: %.2f%%\nAverage network latency: %@%@",
+    return [NSString stringWithFormat:NSLocalizedString(@"Video stream: %dx%d %.2f FPS (Codec: %@)\nFrames dropped by your network connection: %.2f%%\nAverage network latency: %@%@", nil),
             _config.width,
             _config.height,
             stats.totalFrames / interval,

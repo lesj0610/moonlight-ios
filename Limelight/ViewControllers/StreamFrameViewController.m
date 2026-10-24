@@ -87,7 +87,7 @@
     
     _stageLabel = [[UILabel alloc] init];
     [_stageLabel setUserInteractionEnabled:NO];
-    [_stageLabel setText:[NSString stringWithFormat:@"Starting %@...", self.streamConfig.appName]];
+    [_stageLabel setText:[NSString stringWithFormat:NSLocalizedString(@"Starting %@...", nil), self.streamConfig.appName]];
     [_stageLabel sizeToFit];
     _stageLabel.textAlignment = NSTextAlignmentCenter;
     _stageLabel.textColor = [UIColor whiteColor];
@@ -141,9 +141,9 @@
     [_tipLabel setUserInteractionEnabled:NO];
     
 #if TARGET_OS_TV
-    [_tipLabel setText:@"Tip: Tap the Play/Pause button on the Apple TV Remote to disconnect from your PC"];
+    [_tipLabel setText:NSLocalizedString(@"Tip: Tap the Play/Pause button on the Apple TV Remote to disconnect from your PC", nil)];
 #else
-    [_tipLabel setText:@"Tip: Swipe from the left edge to disconnect from your PC"];
+    [_tipLabel setText:NSLocalizedString(@"Tip: Swipe from the left edge to disconnect from your PC", nil)];
 #endif
     
     [_tipLabel sizeToFit];
@@ -416,8 +416,8 @@
         NSString* message;
         
         if (portTestResults != ML_TEST_RESULT_INCONCLUSIVE && portTestResults != 0) {
-            title = @"Connection Error";
-            message = @"Your device's network connection is blocking Moonlight. Streaming may not work while connected to this network.";
+            title = NSLocalizedString(@"Connection Error", nil);
+            message = NSLocalizedString(@"Your device's network connection is blocking Moonlight. Streaming may not work while connected to this network.", nil);
         }
         else {
             switch (errorCode) {
@@ -426,29 +426,29 @@
                     return;
                     
                 case ML_ERROR_NO_VIDEO_TRAFFIC:
-                    title = @"Connection Error";
-                    message = @"No video received from host.";
+                    title = NSLocalizedString(@"Connection Error", nil);
+                    message = NSLocalizedString(@"No video received from host.", nil);
                     if (portFlags != 0) {
                         char failingPorts[256];
                         LiStringifyPortFlags(portFlags, "\n", failingPorts, sizeof(failingPorts));
-                        message = [message stringByAppendingString:[NSString stringWithFormat:@"\n\nCheck your firewall and port forwarding rules for port(s):\n%s", failingPorts]];
+                        message = [message stringByAppendingString:[NSString stringWithFormat:NSLocalizedString(@"\n\nCheck your firewall and port forwarding rules for port(s):\n%s", nil), failingPorts]];
                     }
                     break;
                     
                 case ML_ERROR_NO_VIDEO_FRAME:
-                    title = @"Connection Error";
-                    message = @"Your network connection isn't performing well. Reduce your video bitrate setting or try a faster connection.";
+                    title = NSLocalizedString(@"Connection Error", nil);
+                    message = NSLocalizedString(@"Your network connection isn't performing well. Reduce your video bitrate setting or try a faster connection.", nil);
                     break;
                     
                 case ML_ERROR_UNEXPECTED_EARLY_TERMINATION:
                 case ML_ERROR_PROTECTED_CONTENT:
-                    title = @"Connection Error";
-                    message = @"Something went wrong on your host PC when starting the stream.\n\nMake sure you don't have any DRM-protected content open on your host PC. You can also try restarting your host PC.\n\nIf the issue persists, try reinstalling your GPU drivers and GeForce Experience.";
+                    title = NSLocalizedString(@"Connection Error", nil);
+                    message = NSLocalizedString(@"Something went wrong on your host PC when starting the stream.\n\nMake sure you don't have any DRM-protected content open on your host PC. You can also try restarting your host PC.\n\nIf the issue persists, try reinstalling your GPU drivers and GeForce Experience.", nil);
                     break;
                     
                 case ML_ERROR_FRAME_CONVERSION:
-                    title = @"Connection Error";
-                    message = @"The host PC reported a fatal video encoding error.\n\nTry disabling HDR mode, changing the streaming resolution, or changing your host PC's display resolution.";
+                    title = NSLocalizedString(@"Connection Error", nil);
+                    message = NSLocalizedString(@"The host PC reported a fatal video encoding error.\n\nTry disabling HDR mode, changing the streaming resolution, or changing your host PC's display resolution.", nil);
                     break;
                     
                 default:
@@ -463,8 +463,8 @@
                         errorString = [NSString stringWithFormat:@"%d", errorCode];
                     }
                     
-                    title = @"Connection Terminated";
-                    message = [NSString stringWithFormat: @"The connection was terminated\n\nError code: %@", errorString];
+                    title = NSLocalizedString(@"Connection Terminated", nil);
+                    message = [NSString stringWithFormat: NSLocalizedString(@"The connection was terminated\n\nError code: %@", nil), errorString];
                     break;
                 }
             }
@@ -474,7 +474,7 @@
                                                                               message:message
                                                                        preferredStyle:UIAlertControllerStyleAlert];
         [Utils addHelpOptionToDialog:conTermAlert];
-        [conTermAlert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
+        [conTermAlert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"OK", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
             [self returnToMainFrame];
         }]];
         [self presentViewController:conTermAlert animated:YES completion:nil];
@@ -486,7 +486,7 @@
 - (void) stageStarting:(const char*)stageName {
     Log(LOG_I, @"Starting %s", stageName);
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSString* lowerCase = [NSString stringWithFormat:@"%s in progress...", stageName];
+        NSString* lowerCase = [NSString stringWithFormat:NSLocalizedString(@"%s in progress...", nil), stageName];
         NSString* titleCase = [[[lowerCase substringToIndex:1] uppercaseString] stringByAppendingString:[lowerCase substringFromIndex:1]];
         [self->_stageLabel setText:titleCase];
         [self->_stageLabel sizeToFit];
@@ -506,21 +506,21 @@
         // Allow the display to go to sleep now
         [UIApplication sharedApplication].idleTimerDisabled = NO;
         
-        NSString* message = [NSString stringWithFormat:@"%s failed with error %d", stageName, errorCode];
+        NSString* message = [NSString stringWithFormat:NSLocalizedString(@"%s failed with error %d", nil), stageName, errorCode];
         if (portTestFlags != 0) {
             char failingPorts[256];
             LiStringifyPortFlags(portTestFlags, "\n", failingPorts, sizeof(failingPorts));
-            message = [message stringByAppendingString:[NSString stringWithFormat:@"\n\nCheck your firewall and port forwarding rules for port(s):\n%s", failingPorts]];
+            message = [message stringByAppendingString:[NSString stringWithFormat:NSLocalizedString(@"\n\nCheck your firewall and port forwarding rules for port(s):\n%s", nil), failingPorts]];
         }
         if (portTestResults != ML_TEST_RESULT_INCONCLUSIVE && portTestResults != 0) {
-            message = [message stringByAppendingString:@"\n\nYour device's network connection is blocking Moonlight. Streaming may not work while connected to this network."];
+            message = [message stringByAppendingString:NSLocalizedString(@"\n\nYour device's network connection is blocking Moonlight. Streaming may not work while connected to this network.", nil)];
         }
         
-        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Connection Failed"
+        UIAlertController* alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Connection Failed", nil)
                                                                        message:message
                                                                 preferredStyle:UIAlertControllerStyleAlert];
         [Utils addHelpOptionToDialog:alert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
+        [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"OK", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
             [self returnToMainFrame];
         }]];
         [self presentViewController:alert animated:YES completion:nil];
@@ -536,11 +536,11 @@
         // Allow the display to go to sleep now
         [UIApplication sharedApplication].idleTimerDisabled = NO;
         
-        UIAlertController* alert = [UIAlertController alertControllerWithTitle:@"Connection Error"
+        UIAlertController* alert = [UIAlertController alertControllerWithTitle:NSLocalizedString(@"Connection Error", nil)
                                                                        message:message
                                                                 preferredStyle:UIAlertControllerStyleAlert];
         [Utils addHelpOptionToDialog:alert];
-        [alert addAction:[UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
+        [alert addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"OK", nil) style:UIAlertActionStyleDefault handler:^(UIAlertAction* action){
             [self returnToMainFrame];
         }]];
         [self presentViewController:alert animated:YES completion:nil];
@@ -587,10 +587,10 @@
                 
             case CONN_STATUS_POOR:
                 if (self->_streamConfig.bitRate > 5000) {
-                    [self updateOverlayText:@"Slow connection to PC\nReduce your bitrate"];
+                    [self updateOverlayText:NSLocalizedString(@"Slow connection to PC\nReduce your bitrate", nil)];
                 }
                 else {
-                    [self updateOverlayText:@"Poor connection to PC"];
+                    [self updateOverlayText:NSLocalizedString(@"Poor connection to PC", nil)];
                 }
                 break;
         }

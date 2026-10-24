@@ -104,7 +104,7 @@ static const int LABEL_DY = 20;
     
     [self addTarget:self action:@selector(addClicked) forControlEvents:UIControlEventPrimaryActionTriggered];
     
-    [_hostLabel setText:@"Add Host Manually"];
+    [_hostLabel setText:NSLocalizedString(@"Add Host Manually", nil)];
     [_hostLabel sizeToFit];
     
     [_hostOverlay setImage:[UIImage imageNamed:@"AddOverlayIcon"]];
