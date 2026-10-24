@@ -248,7 +248,22 @@
                 keyCode = 0xA1;
                 break;
             case UIKeyboardHIDUsageKeyboardRightAlt:
-                keyCode = 0xA5;
+                // Hangul/English, not Right Alt.
+                //
+                // The Korean iPad Magic Keyboard puts Hangul/English on the
+                // Caps Lock key, which iPadOS takes for its own input source
+                // switching, so the app never sees it. The key to the right of
+                // the space bar is the one that is actually reachable, and it
+                // is where other remote desktop clients put this too. Caps Lock
+                // stays Caps Lock.
+                keyCode = 0x15;
+                flags = SS_KBE_FLAG_NON_NORMALIZED | SS_KBE_FLAG_LANG1;
+
+                // The host is not being sent Alt, so it must not be told Alt is
+                // down either. UIKey does not say which side a modifier came
+                // from, so holding the left Option while pressing this one
+                // loses the Alt for that event.
+                modifierFlags &= ~MODIFIER_ALT;
                 break;
             // LANG1 and LANG2 are shared between the Korean and Japanese IME
             // keys, and Windows collapses each pair onto one virtual key:
