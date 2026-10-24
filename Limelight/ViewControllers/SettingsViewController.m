@@ -244,6 +244,7 @@ BOOL isCustomResolution(CGSize res) {
     [self.touchModeSelector addTarget:self action:@selector(touchModeChanged) forControlEvents:UIControlEventValueChanged];
     [self.statsOverlaySelector setSelectedSegmentIndex:currentSettings.statsOverlay ? 1 : 0];
     [self.localCursorSelector setSelectedSegmentIndex:currentSettings.localCursor ? 1 : 0];
+    [self.koreanImeKeysSelector setSelectedSegmentIndex:[[NSUserDefaults standardUserDefaults] boolForKey:@"koreanImeKeys"] ? 1 : 0];
     [self.btMouseSelector setSelectedSegmentIndex:currentSettings.btMouseSupport ? 1 : 0];
     [self.optimizeSettingsSelector setSelectedSegmentIndex:currentSettings.optimizeGames ? 1 : 0];
     [self.framePacingSelector setSelectedSegmentIndex:currentSettings.useFramePacing ? 1 : 0];
@@ -558,6 +559,11 @@ BOOL isCustomResolution(CGSize res) {
 
     [[NSUserDefaults standardUserDefaults] setBool:[self.localCursorSelector selectedSegmentIndex] == 1
                                             forKey:@"localCursor"];
+
+    // Read by KeyboardSupport. Kept outside Core Data, which would need a new
+    // data model version for it.
+    [[NSUserDefaults standardUserDefaults] setBool:[self.koreanImeKeysSelector selectedSegmentIndex] == 1
+                                            forKey:@"koreanImeKeys"];
 }
 
 - (void)didReceiveMemoryWarning {

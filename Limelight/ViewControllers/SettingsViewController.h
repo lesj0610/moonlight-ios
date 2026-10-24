@@ -27,6 +27,7 @@
 @property (strong, nonatomic) IBOutlet UISegmentedControl *btMouseSelector;
 @property (strong, nonatomic) IBOutlet UISegmentedControl *statsOverlaySelector;
 @property (strong, nonatomic) IBOutlet UISegmentedControl *localCursorSelector;
+@property (strong, nonatomic) IBOutlet UISegmentedControl *koreanImeKeysSelector;
 @property (strong, nonatomic) IBOutlet UIScrollView *scrollView;
 
 #pragma clang diagnostic push
