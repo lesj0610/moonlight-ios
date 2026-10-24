@@ -115,6 +115,12 @@
 /* Yes */
 "NLH-qN-qCo.segmentTitles[1]" = "켬";
 
+/* Language */
+"Lng-1a-Lbl.text" = "언어 (Language)";
+
+/* System */
+"Lng-1b-Sel.segmentTitles[0]" = "시스템";
+
 /* No */
 "lcO-6v-Tbg.segmentTitles[0]" = "끔";
 

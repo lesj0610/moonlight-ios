@@ -243,6 +243,10 @@ BOOL isCustomResolution(CGSize res) {
     [self.touchModeSelector setSelectedSegmentIndex:currentSettings.absoluteTouchMode ? 1 : 0];
     [self.touchModeSelector addTarget:self action:@selector(touchModeChanged) forControlEvents:UIControlEventValueChanged];
     [self.statsOverlaySelector setSelectedSegmentIndex:currentSettings.statsOverlay ? 1 : 0];
+    // The app's own AppleLanguages, which iOS's per-app language setting also sets
+    NSString* language = [[[NSUserDefaults standardUserDefaults] persistentDomainForName:[[NSBundle mainBundle] bundleIdentifier]][@"AppleLanguages"] firstObject];
+    [self.languageSelector setSelectedSegmentIndex:[language hasPrefix:@"ko"] ? 2 : [language hasPrefix:@"en"] ? 1 : 0];
+    [self.languageSelector addTarget:self action:@selector(languageChanged) forControlEvents:UIControlEventValueChanged];
     [self.btMouseSelector setSelectedSegmentIndex:currentSettings.btMouseSupport ? 1 : 0];
     [self.optimizeSettingsSelector setSelectedSegmentIndex:currentSettings.optimizeGames ? 1 : 0];
     [self.framePacingSelector setSelectedSegmentIndex:currentSettings.useFramePacing ? 1 : 0];
@@ -268,6 +272,27 @@ BOOL isCustomResolution(CGSize res) {
 - (void) touchModeChanged {
     // Disable on-screen controls in absolute touch mode
     [self.onscreenControlSelector setEnabled:[self.touchModeSelector selectedSegmentIndex] == 0];
+}
+
+- (void) languageChanged {
+    switch ([self.languageSelector selectedSegmentIndex]) {
+        case 1:
+            [[NSUserDefaults standardUserDefaults] setObject:@[@"en"] forKey:@"AppleLanguages"];
+            break;
+        case 2:
+            [[NSUserDefaults standardUserDefaults] setObject:@[@"ko"] forKey:@"AppleLanguages"];
+            break;
+        default:
+            [[NSUserDefaults standardUserDefaults] removeObjectForKey:@"AppleLanguages"];
+            break;
+    }
+    
+    // The language is picked when the app starts
+    UIAlertController *alertController = [UIAlertController alertControllerWithTitle:nil
+                                                                             message:NSLocalizedString(@"Quit Moonlight from the app switcher and open it again to use the new language.", nil)
+                                                                      preferredStyle:UIAlertControllerStyleAlert];
+    [alertController addAction:[UIAlertAction actionWithTitle:NSLocalizedString(@"OK", nil) style:UIAlertActionStyleDefault handler:nil]];
+    [self presentViewController:alertController animated:YES completion:nil];
 }
 
 - (void) updateBitrate {

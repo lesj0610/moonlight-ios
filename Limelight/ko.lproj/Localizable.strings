@@ -110,3 +110,6 @@
 "The connection was terminated\n\nError code: %@" = "연결이 종료되었습니다.\n\n오류 코드: %@";
 "Slow connection to PC\nReduce your bitrate" = "PC와의 연결이 느립니다\n비트레이트를 낮추십시오";
 "Poor connection to PC" = "PC와의 연결 상태가 좋지 않습니다";
+
+/* SettingsViewController.m */
+"Quit Moonlight from the app switcher and open it again to use the new language." = "새 언어를 적용하려면 앱 전환기에서 Moonlight를 완전히 종료한 뒤 다시 여십시오.";

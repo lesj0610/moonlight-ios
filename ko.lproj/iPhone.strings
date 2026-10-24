@@ -121,6 +121,12 @@
 /* Yes */
 "rdz-eg-2oR.segmentTitles[1]" = "켬";
 
+/* Language */
+"Lng-2a-Lbl.text" = "언어 (Language)";
+
+/* System */
+"Lng-2b-Sel.segmentTitles[0]" = "시스템";
+
 /* Lag-Free Mouse Pointer */
 "Lcp-2a-Lbl.text" = "지연 없는 마우스 포인터";
 
