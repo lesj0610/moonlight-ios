@@ -125,7 +125,7 @@ void DrStop(void)
                 return @"AV1 10-bit SDR (4:4:4)";
             }
         default:
-            return @"UNKNOWN";
+            return NSLocalizedString(@"UNKNOWN", nil);
     }
 }
 

@@ -136,6 +136,7 @@
 		FBD349621A0089F6002D2A60 /* DataManager.m in Sources */ = {isa = PBXBuildFile; fileRef = FBD349611A0089F6002D2A60 /* DataManager.m */; };
 		FBDE86E019F7A837001C18A8 /* UIComputerView.m in Sources */ = {isa = PBXBuildFile; fileRef = FBDE86DF19F7A837001C18A8 /* UIComputerView.m */; };
 		FBDE86E619F82297001C18A8 /* UIAppView.m in Sources */ = {isa = PBXBuildFile; fileRef = FBDE86E519F82297001C18A8 /* UIAppView.m */; };
+		AC10C0DE2E9B000100000007 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = AC10C0DE2E9B000100000005 /* Localizable.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -241,8 +242,10 @@
 		FB290D0319B2C406004C83CF /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
 		FB290D0619B2C406004C83CF /* Limelight.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = Limelight.xcdatamodel; sourceTree = "<group>"; };
 		FB290D0819B2C406004C83CF /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
-		FB290E7819B37D81004C83CF /* iPad.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = iPad.storyboard; sourceTree = SOURCE_ROOT; };
-		FB290E7A19B38036004C83CF /* iPhone.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = iPhone.storyboard; sourceTree = SOURCE_ROOT; };
+		AC10C0DE2E9B000100000001 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/iPad.storyboard; sourceTree = "<group>"; };
+		AC10C0DE2E9B000100000002 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/iPad.strings; sourceTree = "<group>"; };
+		AC10C0DE2E9B000100000003 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/iPhone.storyboard; sourceTree = "<group>"; };
+		AC10C0DE2E9B000100000004 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/iPhone.strings; sourceTree = "<group>"; };
 		FB4678EB1A50C40900377732 /* OnScreenControls.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = OnScreenControls.h; sourceTree = "<group>"; };
 		FB4678EC1A50C40900377732 /* OnScreenControls.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = OnScreenControls.m; sourceTree = "<group>"; };
 		FB4678F21A51BDCB00377732 /* Limelight 0.3.0.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = "Limelight 0.3.0.xcdatamodel"; sourceTree = "<group>"; };
@@ -320,6 +323,8 @@
 		FBDE86DF19F7A837001C18A8 /* UIComputerView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = UIComputerView.m; sourceTree = "<group>"; };
 		FBDE86E419F82297001C18A8 /* UIAppView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = UIAppView.h; sourceTree = "<group>"; };
 		FBDE86E519F82297001C18A8 /* UIAppView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = UIAppView.m; sourceTree = "<group>"; };
+		AC10C0DE2E9B000100000006 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/Localizable.strings; sourceTree = "<group>"; };
+		AC10C0DE2E9B000100000008 /* ko */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ko; path = ko.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -479,6 +484,7 @@
 			children = (
 				FB290CFB19B2C406004C83CF /* Limelight-Info.plist */,
 				FB290CFC19B2C406004C83CF /* InfoPlist.strings */,
+				AC10C0DE2E9B000100000005 /* Localizable.strings */,
 				FB290CFF19B2C406004C83CF /* main.m */,
 				FB290D0119B2C406004C83CF /* Limelight-Prefix.pch */,
 			);
@@ -763,6 +769,7 @@
 			knownRegions = (
 				en,
 				Base,
+				ko,
 			);
 			mainGroup = FB290CE519B2C406004C83CF;
 			packageReferences = (
@@ -819,6 +826,7 @@
 			files = (
 				FB290E7919B37D81004C83CF /* iPad.storyboard in Resources */,
 				FB290CFE19B2C406004C83CF /* InfoPlist.strings in Resources */,
+				AC10C0DE2E9B000100000007 /* Localizable.strings in Resources */,
 				FB290E7B19B38036004C83CF /* iPhone.storyboard in Resources */,
 				FB290D0919B2C406004C83CF /* Images.xcassets in Resources */,
 				FB89463819F6473800339C8A /* Launch Screen.xib in Resources */,
@@ -965,8 +973,35 @@
 			isa = PBXVariantGroup;
 			children = (
 				FB290CFD19B2C406004C83CF /* en */,
+				AC10C0DE2E9B000100000008 /* ko */,
 			);
 			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+		FB290E7819B37D81004C83CF /* iPad.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				AC10C0DE2E9B000100000001 /* Base */,
+				AC10C0DE2E9B000100000002 /* ko */,
+			);
+			name = iPad.storyboard;
+			sourceTree = SOURCE_ROOT;
+		};
+		FB290E7A19B38036004C83CF /* iPhone.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				AC10C0DE2E9B000100000003 /* Base */,
+				AC10C0DE2E9B000100000004 /* ko */,
+			);
+			name = iPhone.storyboard;
+			sourceTree = SOURCE_ROOT;
+		};
+		AC10C0DE2E9B000100000005 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				AC10C0DE2E9B000100000006 /* ko */,
+			);
+			name = Localizable.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */

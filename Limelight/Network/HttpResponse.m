@@ -66,14 +66,14 @@
         xmlFree(statusMsgXml);
     }
     else {
-        self.statusMessage = @"Server Error";
+        self.statusMessage = NSLocalizedString(@"Server Error", nil);
     }
     
     if (self.statusCode == -1 && [self.statusMessage isEqualToString:@"Invalid"]) {
         // Special case handling an audio capture error which GFE doesn't
         // provide any useful status message for.
         self.statusCode = 418;
-        self.statusMessage = @"Missing audio capture device. Reinstalling GeForce Experience should resolve this error.";
+        self.statusMessage = NSLocalizedString(@"Missing audio capture device. Reinstalling GeForce Experience should resolve this error.", nil);
     }
 
     node = node->children;

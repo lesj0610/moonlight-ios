@@ -1,0 +1,5 @@
+/* Localized versions of Info.plist keys */
+
+"NSBluetoothAlwaysUsageDescription" = "Moonlight가 Citrix X1 마우스에 연결하려면 Bluetooth 접근이 필요합니다.";
+"NSBluetoothPeripheralUsageDescription" = "Moonlight가 Citrix X1 마우스에 연결하려면 Bluetooth 접근이 필요합니다.";
+"NSLocalNetworkUsageDescription" = "Moonlight는 스트리밍할 게임 PC에 연결하기 위해 로컬 네트워크를 사용합니다.";

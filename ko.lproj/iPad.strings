@@ -1,0 +1,140 @@
+/* Settings */
+"mSL-ru-nRm.title" = "설정";
+
+/* Resolution */
+"pYZ-GR-EwO.text" = "해상도";
+
+/* Safe Area */
+"ckc-Dm-8ex.segmentTitles[4]" = "안전 영역";
+
+/* Full */
+"ckc-Dm-8ex.segmentTitles[5]" = "전체 화면";
+
+/* Custom */
+"ckc-Dm-8ex.segmentTitles[6]" = "사용자 지정";
+
+/* Frame Rate */
+"Aiv-r8-9k2.text" = "프레임 레이트";
+
+/* Bitrate: 10 Mbps */
+"lMt-4H-fkV.text" = "비트레이트: 10 Mbps";
+
+/* Touch Mode */
+"h5g-U1-Z2J.text" = "터치 모드";
+
+/* Touchpad */
+"e4G-id-vjI.segmentTitles[0]" = "터치패드";
+
+/* Touchscreen */
+"e4G-id-vjI.segmentTitles[1]" = "터치스크린";
+
+/* On-Screen Controls */
+"LGV-5y-piG.text" = "화면 컨트롤러";
+
+/* Off */
+"qSU-wh-tqA.segmentTitles[0]" = "끔";
+
+/* Auto */
+"qSU-wh-tqA.segmentTitles[1]" = "자동";
+
+/* Simple */
+"qSU-wh-tqA.segmentTitles[2]" = "간단";
+
+/* Full */
+"qSU-wh-tqA.segmentTitles[3]" = "전체";
+
+/* Optimize Game Settings */
+"WSI-9V-G6c.text" = "게임 설정 최적화";
+
+/* No */
+"nCO-OT-dV1.segmentTitles[0]" = "끔";
+
+/* Yes */
+"nCO-OT-dV1.segmentTitles[1]" = "켬";
+
+/* Multi-Controller Mode */
+"bFD-Ng-abn.text" = "다중 컨트롤러 모드";
+
+/* Single */
+"KlC-fG-wEi.segmentTitles[0]" = "단일";
+
+/* Auto */
+"KlC-fG-wEi.segmentTitles[1]" = "자동";
+
+/* Swap A/B and X/Y Buttons */
+"Dll-7x-18l.text" = "A/B·X/Y 버튼 바꾸기";
+
+/* Play Audio on PC */
+"fXq-oD-MrL.text" = "PC에서 소리 재생";
+
+/* No */
+"WDY-9o-6Hb.segmentTitles[0]" = "끔";
+
+/* Yes */
+"WDY-9o-6Hb.segmentTitles[1]" = "켬";
+
+/* Preferred Codec */
+"6w5-Md-NpV.text" = "선호 코덱";
+
+/* Auto */
+"aFy-0w-YPe.segmentTitles[3]" = "자동";
+
+/* HDR (Beta) */
+"bZL-t1-mk7.text" = "HDR (베타)";
+
+/* No */
+"OA2-SA-bBO.segmentTitles[0]" = "끔";
+
+/* Yes */
+"OA2-SA-bBO.segmentTitles[1]" = "켬";
+
+/* Frame Pacing Preference */
+"ZWC-Gw-pSq.text" = "프레임 페이싱";
+
+/* Lowest Latency */
+"7va-uJ-IfD.segmentTitles[0]" = "지연 최소";
+
+/* Smoothest Video */
+"7va-uJ-IfD.segmentTitles[1]" = "부드러운 영상";
+
+/* Citrix X1 Mouse Support */
+"t9f-V8-GCm.text" = "Citrix X1 마우스 지원";
+
+/* No */
+"KMg-3j-F9p.segmentTitles[0]" = "끔";
+
+/* Yes */
+"KMg-3j-F9p.segmentTitles[1]" = "켬";
+
+/* Statistics Overlay */
+"s2i-ZL-Gz4.text" = "통계 오버레이";
+
+/* No */
+"NLH-qN-qCo.segmentTitles[0]" = "끔";
+
+/* Yes */
+"NLH-qN-qCo.segmentTitles[1]" = "켬";
+
+/* No */
+"lcO-6v-Tbg.segmentTitles[0]" = "끔";
+
+/* Yes */
+"lcO-6v-Tbg.segmentTitles[1]" = "켬";
+
+/* Lag-Free Mouse Pointer */
+"Lcp-1a-Lbl.text" = "지연 없는 마우스 포인터";
+
+/* No */
+"Lcp-1b-Sel.segmentTitles[0]" = "끔";
+
+/* Yes */
+"Lcp-1b-Sel.segmentTitles[1]" = "켬";
+
+/* Korean Keys on Right ⌘ and ⌥ */
+"Kim-1a-Lbl.text" = "오른쪽 ⌘ 한/영, ⌥ 한자";
+
+/* No */
+"Kim-1b-Sel.segmentTitles[0]" = "끔";
+
+/* Yes */
+"Kim-1b-Sel.segmentTitles[1]" = "켬";

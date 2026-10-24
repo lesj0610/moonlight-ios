@@ -110,7 +110,7 @@
     if (!request.request) {
         if (request.response) {
             request.response.statusCode = EHOSTDOWN;
-            request.response.statusMessage = @"Host is unreachable";
+            request.response.statusMessage = NSLocalizedString(@"Host is unreachable", nil);
         }
         
         return;
