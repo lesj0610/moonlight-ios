@@ -1,0 +1,71 @@
+name: Build
+
+# Upstream's CI only builds for the simulator, which yields nothing that can be
+# installed. This builds the iOS/iPadOS app for devices and keeps an unsigned
+# .ipa to install with a re-signing tool.
+
+on:
+  push:
+    branches:
+      - 'release/**'
+  pull_request:
+    branches:
+      - 'release/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    name: iOS / iPadOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Download iOS platform
+        run: xcodebuild -downloadPlatform iOS
+
+      # Signing is off because CI has no certificate; a re-signing tool
+      # supplies one at install time.
+      - name: Build
+        run: |
+          xcodebuild \
+            -project Moonlight.xcodeproj \
+            -scheme Moonlight \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Package
+        run: |
+          products=build/Build/Products/Release-iphoneos
+          app=$(find "$products" -maxdepth 1 -name '*.app' -print -quit)
+          if [ -z "$app" ]; then
+            echo "No .app was produced in $products"
+            ls -la "$products" || true
+            exit 1
+          fi
+          echo "Packaging $app"
+          mkdir -p Payload
+          cp -R "$app" Payload/
+          zip -qry Moonlight-unsigned.ipa Payload
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: Moonlight-unsigned-ipa
+          path: Moonlight-unsigned.ipa
+          if-no-files-found: error
