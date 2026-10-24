@@ -26,6 +26,10 @@
 
 -(void) initAutoOnScreenControlMode:(OnScreenControls*)osc;
 -(void) cleanup;
+
+// Whether mice report through GCMouse, as relative motion. When they don't,
+// UIKit's pointer events handle them.
+-(void) setGCMouseEnabled:(BOOL)enabled;
 -(Controller*) getOscController;
 
 -(void) updateLeftStick:(Controller*)controller x:(short)x y:(short)y;

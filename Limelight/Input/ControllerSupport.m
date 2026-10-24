@@ -46,6 +46,7 @@ static const double MOUSE_SPEED_DIVISOR = 1.25;
     char _controllerNumbers;
     bool _multiController;
     bool _swapABXYButtons;
+    bool _gcMouseDisabled;
 }
 
 // UPDATE_BUTTON_FLAG(controller, flag, pressed)
@@ -846,6 +847,21 @@ static const double MOUSE_SPEED_DIVISOR = 1.25;
 #endif
 }
 
+-(void) setGCMouseEnabled:(BOOL)enabled {
+    _gcMouseDisabled = !enabled;
+    
+    if (@available(iOS 14.0, tvOS 14.0, *)) {
+        for (GCMouse* mouse in [GCMouse mice]) {
+            if (enabled) {
+                [self registerMouseCallbacks:mouse];
+            }
+            else {
+                [self unregisterMouseCallbacks:mouse];
+            }
+        }
+    }
+}
+
 -(void) registerMouseCallbacks:(GCMouse*) mouse API_AVAILABLE(ios(14.0)) {
     mouse.mouseInput.mouseMovedHandler = ^(GCMouseInput * _Nonnull mouse, float deltaX, float deltaY) {
         self->accumulatedDeltaX += deltaX / MOUSE_SPEED_DIVISOR;
@@ -1184,7 +1200,9 @@ static const double MOUSE_SPEED_DIVISOR = 1.25;
             GCMouse* mouse = note.object;
             
             // Register for mouse events
-            [self registerMouseCallbacks: mouse];
+            if (!self->_gcMouseDisabled) {
+                [self registerMouseCallbacks: mouse];
+            }
 
             // Re-evaluate the on-screen control mode
             [self updateAutoOnScreenControlMode];

@@ -379,6 +379,19 @@
         
         [self->_controllerSupport connectionEstablished];
         
+#if !TARGET_OS_TV
+        // Draw the host's mouse pointer here, so it moves without waiting for video
+        if (self->_settings.localCursor && [self->_streamView startLocalCursor]) {
+            // That needs the pointer where the user points it, which UIKit
+            // reports while the pointer is not locked, rather than GCMouse's
+            // relative motion
+            [self->_controllerSupport setGCMouseEnabled:NO];
+            if (@available(iOS 14.0, *)) {
+                [self setNeedsUpdateOfPrefersPointerLocked];
+            }
+        }
+#endif
+        
         if (self->_settings.statsOverlay) {
             self->_statsUpdateTimer = [NSTimer scheduledTimerWithTimeInterval:1.0f
                                                                        target:self
@@ -620,6 +633,14 @@
     });
 }
 
+- (void) localCursorUpdate:(BOOL)visible image:(NSData*)image width:(int)width height:(int)height hotX:(int)hotX hotY:(int)hotY scale:(int)scale {
+#if !TARGET_OS_TV
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self->_streamView setHostCursorVisible:visible image:image width:width height:height hotX:hotX hotY:hotY scale:scale];
+    });
+#endif
+}
+
 - (void) videoContentShown {
     [_spinner stopAnimating];
     [self.view setBackgroundColor:[UIColor blackColor]];
@@ -706,8 +727,9 @@
 - (BOOL)prefersPointerLocked {
     // Pointer lock breaks the UIKit mouse APIs, which is a problem because
     // GCMouse is horribly broken on iOS 14.0 for certain mice. Only lock
-    // the cursor if there is a GCMouse present.
-    return [GCMouse mice].count > 0;
+    // the cursor if there is a GCMouse present, and not while the host's
+    // pointer is drawn here, which follows the unlocked pointer.
+    return [GCMouse mice].count > 0 && ![_streamView isLocalCursorActive];
 }
 #endif
 

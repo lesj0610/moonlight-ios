@@ -85,6 +85,10 @@
     self.btMouseSupport = settings.btMouseSupport;
     self.absoluteTouchMode = settings.absoluteTouchMode;
     self.statsOverlay = settings.statsOverlay;
+
+    // Kept outside Core Data, so adding it needed no new data model version
+    NSNumber* localCursor = [[NSUserDefaults standardUserDefaults] objectForKey:@"localCursor"];
+    self.localCursor = localCursor != nil ? [localCursor boolValue] : YES;
 #endif
     self.uniqueId = settings.uniqueId;
     
