@@ -28,6 +28,7 @@
 @property (strong, nonatomic) IBOutlet UISegmentedControl *statsOverlaySelector;
 @property (strong, nonatomic) IBOutlet UISegmentedControl *localCursorSelector;
 @property (strong, nonatomic) IBOutlet UISegmentedControl *koreanImeKeysSelector;
+@property (strong, nonatomic) IBOutlet UISegmentedControl *globeKeyAsEscapeSelector;
 @property (strong, nonatomic) IBOutlet UISegmentedControl *languageSelector;
 @property (strong, nonatomic) IBOutlet UIScrollView *scrollView;
 

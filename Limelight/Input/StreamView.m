@@ -17,6 +17,9 @@
 
 static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
 
+// The Globe key on Apple keyboards for iPad
+static const long GLOBE_KEY_USAGE = 669;
+
 @implementation StreamView {
     OnScreenControls* onScreenControls;
     
@@ -47,6 +50,13 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     
     NSDictionary<NSString *, NSNumber *> *dictCodes;
     
+    // The Globe key goes to the host as Escape unless it is left to the
+    // system. Keys pressed while it is held for the system go there too.
+    BOOL globeKeyToSystem;
+    BOOL globeKeyDown;
+    NSMutableSet<NSNumber *> *keysForSystem;
+    NSMutableSet<NSNumber *> *keysDropped;
+    
 #if !TARGET_OS_TV
     // The host's mouse pointer, drawn here while the host leaves it out of
     // the video. Its size and hot spot are in host pixels, and its position
@@ -72,6 +82,10 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
     TemporarySettings* settings = [[[DataManager alloc] init] getSettings];
     
     keysDown = [[NSMutableSet alloc] init];
+    keysForSystem = [[NSMutableSet alloc] init];
+    keysDropped = [[NSMutableSet alloc] init];
+    NSNumber* globeKeyAsEscape = [[NSUserDefaults standardUserDefaults] objectForKey:@"globeKeyAsEscape"];
+    globeKeyToSystem = globeKeyAsEscape != nil && ![globeKeyAsEscape boolValue];
     keyInputField = [[KeyboardInputField alloc] initWithFrame:CGRectZero];
     [keyInputField setKeyboardType:UIKeyboardTypeDefault];
     [keyInputField setAutocorrectionType:UITextAutocorrectionTypeNo];
@@ -565,41 +579,144 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
 }
 
 - (void)pressesBegan:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
-    BOOL handled = NO;
-    
-    if (@available(iOS 13.4, tvOS 13.4, *)) {
-        for (UIPress* press in presses) {
-            // For now, we'll treated it as handled if we handle at least one of the
-            // UIPress events inside the set.
-            if ([KeyboardSupport sendKeyEventForPress:press down:YES]) {
-                // This will prevent the legacy UITextField from receiving the event
-                handled = YES;
-            }
-        }
-    }
-    
-    if (!handled) {
-        [super pressesBegan:presses withEvent:event];
+    NSSet<UIPress *>* unsent = [self sendPresses:presses down:YES];
+    if (unsent.count > 0) {
+        [super pressesBegan:unsent withEvent:event];
     }
 }
 
 - (void)pressesEnded:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
-    BOOL handled = NO;
-    
+    NSSet<UIPress *>* unsent = [self sendPresses:presses down:NO];
+    if (unsent.count > 0) {
+        [super pressesEnded:unsent withEvent:event];
+    }
+}
+
+- (void)pressesCancelled:(NSSet<UIPress *> *)presses withEvent:(UIPressesEvent *)event {
     if (@available(iOS 13.4, tvOS 13.4, *)) {
+        // No release follows, so forget the keys kept from the host
         for (UIPress* press in presses) {
-            // For now, we'll treated it as handled if we handle at least one of the
-            // UIPress events inside the set.
-            if ([KeyboardSupport sendKeyEventForPress:press down:NO]) {
-                // This will prevent the legacy UITextField from receiving the event
-                handled = YES;
-            }
+            BOOL toSystem = NO;
+            [self keepPressFromHost:press down:NO toSystem:&toSystem];
         }
     }
     
-    if (!handled) {
-        [super pressesEnded:presses withEvent:event];
+    [super pressesCancelled:presses withEvent:event];
+}
+
+// Sends the presses to the host and returns the ones UIKit should get
+- (NSSet<UIPress *> *)sendPresses:(NSSet<UIPress *> *)presses down:(BOOL)down {
+    if (@available(iOS 13.4, tvOS 13.4, *)) {
+        BOOL handled = NO;
+        NSMutableSet<UIPress *>* forSystem = [NSMutableSet set];
+        NSMutableSet<UIPress *>* unhandled = [NSMutableSet set];
+        
+        for (UIPress* press in presses) {
+            BOOL toSystem = NO;
+            if ([self keepPressFromHost:press down:down toSystem:&toSystem]) {
+                if (toSystem) {
+                    [forSystem addObject:press];
+                }
+                else {
+                    handled = YES;
+                }
+            }
+            // For now, we'll treated it as handled if we handle at least one of the
+            // UIPress events inside the set.
+            else if ([KeyboardSupport sendKeyEventForPress:press down:down]) {
+                // This will prevent the legacy UITextField from receiving the event
+                handled = YES;
+            }
+            else {
+                [unhandled addObject:press];
+            }
+        }
+        
+        if (!handled) {
+            [forSystem unionSet:unhandled];
+        }
+        return forSystem;
     }
+    
+    return presses;
+}
+
+// Returns YES for a press the host must not get, setting toSystem when
+// UIKit gets it instead of it being dropped
+- (BOOL)keepPressFromHost:(UIPress *)press down:(BOOL)down toSystem:(BOOL *)toSystem API_AVAILABLE(ios(13.4), tvos(13.4)) {
+    UIKey* key = press.key;
+    if (key == nil) {
+        return NO;
+    }
+    
+    // A release goes where its press went
+    NSNumber* keyCode = @(key.keyCode);
+    if (!down) {
+        if (key.keyCode == GLOBE_KEY_USAGE) {
+            globeKeyDown = NO;
+        }
+        if ([keysForSystem containsObject:keyCode]) {
+            [keysForSystem removeObject:keyCode];
+            *toSystem = YES;
+            return YES;
+        }
+        if ([keysDropped containsObject:keyCode]) {
+            [keysDropped removeObject:keyCode];
+            *toSystem = NO;
+            return YES;
+        }
+        return NO;
+    }
+    
+    // Control-Option-Shift-G switches where the Globe key goes
+    UIKeyModifierFlags shortcut = UIKeyModifierControl | UIKeyModifierAlternate | UIKeyModifierShift;
+    if (key.keyCode == UIKeyboardHIDUsageKeyboardG &&
+        (key.modifierFlags & (shortcut | UIKeyModifierCommand)) == shortcut) {
+        globeKeyToSystem = !globeKeyToSystem;
+        [self showNotice:globeKeyToSystem ?
+            NSLocalizedString(@"Globe key: System", nil) :
+            NSLocalizedString(@"Globe key: Esc", nil)];
+        [keysDropped addObject:keyCode];
+        *toSystem = NO;
+        return YES;
+    }
+    
+    // Keys pressed with the Globe key form system shortcuts, like Globe-D
+    // for dictation
+    if (key.keyCode == GLOBE_KEY_USAGE && globeKeyToSystem) {
+        globeKeyDown = YES;
+    }
+    if (globeKeyDown) {
+        [keysForSystem addObject:keyCode];
+        *toSystem = YES;
+        return YES;
+    }
+    
+    return NO;
+}
+
+// Shows a short message over the stream
+- (void)showNotice:(NSString *)text {
+    UILabel* label = [[UILabel alloc] init];
+    label.text = text;
+    label.textColor = [UIColor whiteColor];
+    label.textAlignment = NSTextAlignmentCenter;
+    label.backgroundColor = [UIColor colorWithWhite:0 alpha:0.6];
+    label.layer.cornerRadius = 8;
+    label.clipsToBounds = YES;
+    [label sizeToFit];
+    label.bounds = CGRectMake(0, 0, label.bounds.size.width + 32, label.bounds.size.height + 16);
+    
+    // The window, so that the stream being zoomed in does not move it
+    UIView* parent = self.window != nil ? self.window : self;
+    label.center = CGPointMake(parent.bounds.size.width / 2, parent.bounds.size.height * 0.1);
+    [parent addSubview:label];
+    
+    [UIView animateWithDuration:0.5 delay:1.5 options:0 animations:^{
+        label.alpha = 0;
+    } completion:^(BOOL finished) {
+        [label removeFromSuperview];
+    }];
 }
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event {
@@ -973,6 +1090,11 @@ static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
 
 - (NSArray<UIKeyCommand *> *)keyCommands
 {
+    // Keys pressed with the Globe key are left to the system
+    if (globeKeyDown) {
+        return @[];
+    }
+    
     NSString *charset = @"qwertyuiopasdfghjklzxcvbnm1234567890\t§[]\\'\"/.,`<>-´ç+`¡'º;ñ= ";
     
     NSMutableArray<UIKeyCommand *> * commands = [NSMutableArray<UIKeyCommand *> array];

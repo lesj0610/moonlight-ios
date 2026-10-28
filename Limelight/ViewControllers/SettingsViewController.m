@@ -245,6 +245,8 @@ BOOL isCustomResolution(CGSize res) {
     [self.statsOverlaySelector setSelectedSegmentIndex:currentSettings.statsOverlay ? 1 : 0];
     [self.localCursorSelector setSelectedSegmentIndex:currentSettings.localCursor ? 1 : 0];
     [self.koreanImeKeysSelector setSelectedSegmentIndex:[[NSUserDefaults standardUserDefaults] boolForKey:@"koreanImeKeys"] ? 1 : 0];
+    NSNumber* globeKeyAsEscape = [[NSUserDefaults standardUserDefaults] objectForKey:@"globeKeyAsEscape"];
+    [self.globeKeyAsEscapeSelector setSelectedSegmentIndex:globeKeyAsEscape == nil || [globeKeyAsEscape boolValue] ? 1 : 0];
     // The app's own AppleLanguages, which iOS's per-app language setting also sets
     NSString* language = [[[NSUserDefaults standardUserDefaults] persistentDomainForName:[[NSBundle mainBundle] bundleIdentifier]][@"AppleLanguages"] firstObject];
     [self.languageSelector setSelectedSegmentIndex:[language hasPrefix:@"ko"] ? 2 : [language hasPrefix:@"en"] ? 1 : 0];
@@ -589,6 +591,10 @@ BOOL isCustomResolution(CGSize res) {
     // data model version for it.
     [[NSUserDefaults standardUserDefaults] setBool:[self.koreanImeKeysSelector selectedSegmentIndex] == 1
                                             forKey:@"koreanImeKeys"];
+
+    // Read by StreamView when a stream starts
+    [[NSUserDefaults standardUserDefaults] setBool:[self.globeKeyAsEscapeSelector selectedSegmentIndex] == 1
+                                            forKey:@"globeKeyAsEscape"];
 }
 
 - (void)didReceiveMemoryWarning {

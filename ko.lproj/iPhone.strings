@@ -144,3 +144,12 @@
 
 /* Yes */
 "Kim-2b-Sel.segmentTitles[1]" = "켬";
+
+/* Globe Key as Esc (⌃⌥⇧G to Switch) */
+"Glb-2a-Lbl.text" = "지구본 키를 Esc로 (⌃⌥⇧G로 전환)";
+
+/* No */
+"Glb-2b-Sel.segmentTitles[0]" = "끔";
+
+/* Yes */
+"Glb-2b-Sel.segmentTitles[1]" = "켬";

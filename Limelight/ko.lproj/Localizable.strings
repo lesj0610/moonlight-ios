@@ -113,3 +113,7 @@
 
 /* SettingsViewController.m */
 "Quit Moonlight from the app switcher and open it again to use the new language." = "새 언어를 적용하려면 앱 전환기에서 Moonlight를 완전히 종료한 뒤 다시 여십시오.";
+
+/* StreamView.m */
+"Globe key: System" = "지구본 키: 시스템";
+"Globe key: Esc" = "지구본 키: Esc";
