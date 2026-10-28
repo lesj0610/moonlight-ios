@@ -117,3 +117,4 @@
 /* StreamView.m */
 "Globe key: System" = "지구본 키: 시스템";
 "Globe key: Esc" = "지구본 키: Esc";
+"Input log copied (%lu events)" = "입력 기록 %lu개를 복사했습니다";

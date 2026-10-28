@@ -17,6 +17,9 @@
 
 static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
 
+// Records an event for the temporary input diagnostics
+#define DIAG(...) [InputDiagnostics record:[NSString stringWithFormat:__VA_ARGS__]]
+
 // The Globe key on Apple keyboards for iPad
 static const long GLOBE_KEY_USAGE = 669;
 
@@ -92,6 +95,14 @@ static const long GLOBE_KEY_USAGE = 669;
     [keyInputField setAutocapitalizationType:UITextAutocapitalizationTypeNone];
     [keyInputField setSpellCheckingType:UITextSpellCheckingTypeNo];
     [self addSubview:keyInputField];
+    
+#if !TARGET_OS_TV
+    NSNotificationCenter* center = [NSNotificationCenter defaultCenter];
+    [center addObserver:self selector:@selector(diagInputModeChanged:) name:UITextInputCurrentInputModeDidChangeNotification object:nil];
+    [center addObserver:self selector:@selector(diagKeyboardFrame:) name:UIKeyboardDidShowNotification object:nil];
+    [center addObserver:self selector:@selector(diagKeyboardFrame:) name:UIKeyboardDidHideNotification object:nil];
+    [center addObserver:self selector:@selector(diagKeyboardFrame:) name:UIKeyboardDidChangeFrameNotification object:nil];
+#endif
     
 #if TARGET_OS_TV
     // tvOS requires RelativeTouchHandler to manage Apple Remote input
@@ -384,11 +395,13 @@ static const long GLOBE_KEY_USAGE = 669;
         
         if ([[event allTouches] count] == 3) {
             if (isInputingText) {
+                DIAG(@"three-finger tap: close keyboard");
                 Log(LOG_D, @"Closing the keyboard");
                 [keyInputField resignFirstResponder];
                 isInputingText = false;
             } else {
                 Log(LOG_D, @"Opening the keyboard");
+                DIAG(@"three-finger tap: open keyboard | %@", [keyInputField diagOptionalMethods]);
                 // Prepare the textbox used to capture keyboard events.
                 keyInputField.delegate = self;
                 keyInputField.text = @"0";
@@ -456,6 +469,7 @@ static const long GLOBE_KEY_USAGE = 669;
     short keyCode = [objc_getAssociatedObject(sender, "keyCode") shortValue];
     // Close keyboard if done button clicked
     if (!keyCode) {
+        DIAG(@"toolbar Done: close keyboard");
         [keyInputField resignFirstResponder];
         isInputingText = false;
     }
@@ -463,17 +477,20 @@ static const long GLOBE_KEY_USAGE = 669;
         // Send key press event using keyCode parameter, toggle if necessary
         if (isToggleable){
             if (isOn){
-                LiSendKeyboardEvent(keyCode, KEY_ACTION_DOWN, 0);
+                int ret = LiSendKeyboardEvent(keyCode, KEY_ACTION_DOWN, 0);
+                DIAG(@"toolbar vk=0x%02X down: send request ret=%d", keyCode, ret);
                 [keysDown addObject:@(keyCode)];
             } else {
-                LiSendKeyboardEvent(keyCode, KEY_ACTION_UP, 0);
+                int ret = LiSendKeyboardEvent(keyCode, KEY_ACTION_UP, 0);
+                DIAG(@"toolbar vk=0x%02X up: send request ret=%d", keyCode, ret);
                 [keysDown removeObject:@(keyCode)];
             }
         }
         else {
-            LiSendKeyboardEvent(keyCode, KEY_ACTION_DOWN, 0);
+            int down = LiSendKeyboardEvent(keyCode, KEY_ACTION_DOWN, 0);
             usleep(50 * 1000);
-            LiSendKeyboardEvent(keyCode, KEY_ACTION_UP, 0);
+            int up = LiSendKeyboardEvent(keyCode, KEY_ACTION_UP, 0);
+            DIAG(@"toolbar vk=0x%02X: send request ret=%d/%d", keyCode, down, up);
         }
     }
 }
@@ -613,12 +630,15 @@ static const long GLOBE_KEY_USAGE = 669;
         
         for (UIPress* press in presses) {
             BOOL toSystem = NO;
+            NSString* decision;
             if ([self keepPressFromHost:press down:down toSystem:&toSystem]) {
                 if (toSystem) {
                     [forSystem addObject:press];
+                    decision = @"to system";
                 }
                 else {
                     handled = YES;
+                    decision = @"dropped";
                 }
             }
             // For now, we'll treated it as handled if we handle at least one of the
@@ -626,14 +646,21 @@ static const long GLOBE_KEY_USAGE = 669;
             else if ([KeyboardSupport sendKeyEventForPress:press down:down]) {
                 // This will prevent the legacy UITextField from receiving the event
                 handled = YES;
+                decision = @"send requested to host";
             }
             else {
                 [unhandled addObject:press];
+                decision = @"not sent";
             }
+            DIAG(@"view press %@ usage=%ld mods=0x%lx type=%ld: %@", down ? @"down" : @"up",
+                 (long)press.key.keyCode, (long)press.key.modifierFlags, (long)press.type, decision);
         }
         
         if (!handled) {
             [forSystem unionSet:unhandled];
+        }
+        if (forSystem.count > 0) {
+            DIAG(@"view presses passed to UIKit: %lu", (unsigned long)forSystem.count);
         }
         return forSystem;
     }
@@ -680,6 +707,20 @@ static const long GLOBE_KEY_USAGE = 669;
         *toSystem = NO;
         return YES;
     }
+    
+#if !TARGET_OS_TV
+    // Control-Option-Shift-L copies the input diagnostics
+    if (key.keyCode == UIKeyboardHIDUsageKeyboardL &&
+        (key.modifierFlags & (shortcut | UIKeyModifierCommand)) == shortcut) {
+        NSUInteger count = 0;
+        DIAG(@"export shortcut");
+        [UIPasteboard generalPasteboard].string = [InputDiagnostics exportWithCount:&count];
+        [self showNotice:[NSString stringWithFormat:NSLocalizedString(@"Input log copied (%lu events)", nil), (unsigned long)count]];
+        [keysDropped addObject:keyCode];
+        *toSystem = NO;
+        return YES;
+    }
+#endif
     
     // Keys pressed with the Globe key form system shortcuts, like Globe-D
     // for dictation
@@ -1002,27 +1043,56 @@ static const long GLOBE_KEY_USAGE = 669;
 
 - (BOOL)textFieldShouldReturn:(UITextField *)textField {
     // This method is called when the "Return" key is pressed.
-    LiSendKeyboardEvent(0x0d, KEY_ACTION_DOWN, 0);
+    DIAG(@"textFieldShouldReturn | %@", [keyInputField diagState]);
+    int down = LiSendKeyboardEvent(0x0d, KEY_ACTION_DOWN, 0);
     usleep(50 * 1000);
-    LiSendKeyboardEvent(0x0d, KEY_ACTION_UP, 0);
+    int up = LiSendKeyboardEvent(0x0d, KEY_ACTION_UP, 0);
+    DIAG(@"Return: send request ret=%d/%d", down, up);
     return NO;
 }
 
 - (void)textFieldDidEndEditing:(UITextField *)textField {
+    DIAG(@"textFieldDidEndEditing | %@", [keyInputField diagState]);
     for (NSNumber* keyCode in keysDown) {
-        LiSendKeyboardEvent([keyCode shortValue], KEY_ACTION_UP, 0);
+        int ret = LiSendKeyboardEvent([keyCode shortValue], KEY_ACTION_UP, 0);
+        DIAG(@"release vk=0x%02X: send request ret=%d", [keyCode shortValue], ret);
     }
     [keysDown removeAllObjects];
 }
 
+// Only records the change. Allowing it is what UIKit does without this.
+- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
+    DIAG(@"shouldChangeCharactersInRange:{%lu,%lu} replacement=%@ | %@",
+         (unsigned long)range.location, (unsigned long)range.length,
+         [InputDiagnostics describeText:string], [keyInputField diagState]);
+    return YES;
+}
+
+- (void)textFieldDidChangeSelection:(UITextField *)textField {
+    DIAG(@"textFieldDidChangeSelection | %@", [keyInputField diagState]);
+}
+
+#if !TARGET_OS_TV
+- (void)diagInputModeChanged:(NSNotification *)notification {
+    DIAG(@"input mode changed | %@", [keyInputField diagState]);
+}
+
+- (void)diagKeyboardFrame:(NSNotification *)notification {
+    CGRect frame = [notification.userInfo[UIKeyboardFrameEndUserInfoKey] CGRectValue];
+    DIAG(@"%@ end frame %@", notification.name, NSStringFromCGRect(frame));
+}
+#endif
+
 - (void)onKeyboardPressed:(UITextField *)textField {
     NSString* inputText = textField.text;
+    DIAG(@"EditingChanged | %@", [keyInputField diagState]);
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         // If the text became empty, we know the user pressed the backspace key.
         if ([inputText isEqual:@""]) {
-            LiSendKeyboardEvent(0x08, KEY_ACTION_DOWN, 0);
+            int down = LiSendKeyboardEvent(0x08, KEY_ACTION_DOWN, 0);
             usleep(50 * 1000);
-            LiSendKeyboardEvent(0x08, KEY_ACTION_UP, 0);
+            int up = LiSendKeyboardEvent(0x08, KEY_ACTION_UP, 0);
+            DIAG(@"empty field, Backspace: send request ret=%d/%d", down, up);
         } else {
             // Character 0 will be our known sentinel value
             
@@ -1034,12 +1104,16 @@ static const long GLOBE_KEY_USAGE = 669;
                     const char* utf8String = [inputText UTF8String];
                     
                     // Skip the first character which is our sentinel
-                    LiSendUtf8TextEvent(utf8String + 1, (int)strlen(utf8String) - 1);
+                    int ret = LiSendUtf8TextEvent(utf8String + 1, (int)strlen(utf8String) - 1);
+                    DIAG(@"UTF-8 text after the first character %@ (%d bytes): send request ret=%d",
+                         [InputDiagnostics describeText:[inputText substringFromIndex:1]], (int)strlen(utf8String) - 1, ret);
                     return;
                 }
             }
             
             // We didn't find any unknown characters, so send them all as basic key events
+            DIAG(@"keys for the text after the first character %@",
+                 [InputDiagnostics describeText:[inputText substringFromIndex:1]]);
             for (int i = 1; i < [inputText length]; i++) {
                 struct KeyEvent event = [KeyboardSupport translateKeyEvent:[inputText characterAtIndex:i] withModifierFlags:0];
                 assert(event.keycode != 0);
@@ -1049,20 +1123,24 @@ static const long GLOBE_KEY_USAGE = 669;
     });
     
     // Reset text field back to known state
+    DIAG(@"reset to \"0\": before | %@", [keyInputField diagState]);
     textField.text = @"0";
     
     // Move the insertion point back to the end of the text box
     UITextRange *textRange = [textField textRangeFromPosition:textField.endOfDocument toPosition:textField.endOfDocument];
     [textField setSelectedTextRange:textRange];
+    DIAG(@"reset to \"0\": after | %@", [keyInputField diagState]);
 }
 
 - (void)specialCharPressed:(UIKeyCommand *)cmd {
+    DIAG(@"key command (special) input=%@ mods=0x%lx", [InputDiagnostics describeText:[cmd input]], (long)[cmd modifierFlags]);
     struct KeyEvent event = [KeyboardSupport translateKeyEvent:0x20 withModifierFlags:[cmd modifierFlags]];
     event.keycode = [[dictCodes valueForKey:[cmd input]] intValue];
     [self sendLowLevelEvent:event];
 }
 
 - (void)keyPressed:(UIKeyCommand *)cmd {
+    DIAG(@"key command input=%@ mods=0x%lx", [InputDiagnostics describeText:[cmd input]], (long)[cmd modifierFlags]);
     struct KeyEvent event = [KeyboardSupport translateKeyEvent:[[cmd input] characterAtIndex:0] withModifierFlags:[cmd modifierFlags]];
     [self sendLowLevelEvent:event];
 }
@@ -1075,12 +1153,13 @@ static const long GLOBE_KEY_USAGE = 669;
             LiSendKeyboardEvent(event.modifierKeycode, KEY_ACTION_DOWN, event.modifier);
         }
         // Let the host know these are not (necessarily) normalized to US English scancodes
-        LiSendKeyboardEvent2(event.keycode, KEY_ACTION_DOWN, event.modifier, SS_KBE_FLAG_NON_NORMALIZED);
+        int down = LiSendKeyboardEvent2(event.keycode, KEY_ACTION_DOWN, event.modifier, SS_KBE_FLAG_NON_NORMALIZED);
         usleep(50 * 1000);
-        LiSendKeyboardEvent2(event.keycode, KEY_ACTION_UP, event.modifier, SS_KBE_FLAG_NON_NORMALIZED);
+        int up = LiSendKeyboardEvent2(event.keycode, KEY_ACTION_UP, event.modifier, SS_KBE_FLAG_NON_NORMALIZED);
         if (event.modifier != 0) {
             LiSendKeyboardEvent(event.modifierKeycode, KEY_ACTION_UP, event.modifier);
         }
+        DIAG(@"key vk=0x%02X modifier=0x%02X: send request ret=%d/%d", event.keycode, event.modifier, down, up);
     });
 }
 
