@@ -14,11 +14,19 @@
 #import "RelativeTouchHandler.h"
 #import "AbsoluteTouchHandler.h"
 #import "KeyboardInputField.h"
+#if !TARGET_OS_TV
+#import "SpeechInput.h"
+#endif
 
 static const double X1_MOUSE_SPEED_DIVISOR = 2.5;
 
 // The Globe key on Apple keyboards for iPad
 static const long GLOBE_KEY_USAGE = 669;
+
+#if !TARGET_OS_TV
+@interface StreamView () <SpeechInputDelegate>
+@end
+#endif
 
 @implementation StreamView {
     OnScreenControls* onScreenControls;
@@ -58,6 +66,10 @@ static const long GLOBE_KEY_USAGE = 669;
     BOOL globeKeyDown;
     NSMutableSet<NSNumber *> *keysForSystem;
     NSMutableSet<NSNumber *> *keysDropped;
+#if !TARGET_OS_TV
+    SpeechInput* speechInput;
+    UILabel* speechLabel;
+#endif
     
 #if !TARGET_OS_TV
     // The host's mouse pointer, drawn here while the host leaves it out of
@@ -88,6 +100,10 @@ static const long GLOBE_KEY_USAGE = 669;
     keysDropped = [[NSMutableSet alloc] init];
     NSNumber* globeKeyAsEscape = [[NSUserDefaults standardUserDefaults] objectForKey:@"globeKeyAsEscape"];
     globeKeyToSystem = globeKeyAsEscape != nil && ![globeKeyAsEscape boolValue];
+#if !TARGET_OS_TV
+    speechInput = [[SpeechInput alloc] init];
+    speechInput.delegate = self;
+#endif
     keyInputField = [[KeyboardInputField alloc] initWithFrame:CGRectZero];
     [keyInputField setKeyboardType:UIKeyboardTypeDefault];
     [keyInputField setAutocorrectionType:UITextAutocorrectionTypeNo];
@@ -688,6 +704,21 @@ static const long GLOBE_KEY_USAGE = 669;
     if (key.keyCode == GLOBE_KEY_USAGE && globeKeyToSystem) {
         globeKeyDown = YES;
     }
+#if !TARGET_OS_TV
+    // With the keyboard closed, Globe-D starts and stops listening for text to
+    // send instead. With Shift, it listens in the second preferred language.
+    if (globeKeyDown && !isInputingText && key.keyCode == UIKeyboardHIDUsageKeyboardD) {
+        if (speechInput.isActive) {
+            [speechInput stop];
+        }
+        else {
+            [speechInput startInSecondLanguage:(key.modifierFlags & UIKeyModifierShift) != 0];
+        }
+        [keysDropped addObject:keyCode];
+        *toSystem = NO;
+        return YES;
+    }
+#endif
     if (globeKeyDown) {
         [keysForSystem addObject:keyCode];
         *toSystem = YES;
@@ -696,6 +727,71 @@ static const long GLOBE_KEY_USAGE = 669;
     
     return NO;
 }
+
+#if !TARGET_OS_TV
+- (void)speechInputListeningInLanguage:(NSString *)language text:(NSString *)text {
+    NSString* status = [NSString stringWithFormat:NSLocalizedString(@"Listening in %@. Globe-D sends it.", nil), language];
+    
+    // The end of what was heard, since it can get long
+    const NSUInteger shownLength = 120;
+    if (text.length > shownLength) {
+        NSRange start = [text rangeOfComposedCharacterSequenceAtIndex:text.length - shownLength];
+        text = [@"…" stringByAppendingString:[text substringFromIndex:start.location]];
+    }
+    [self showSpeechText:text.length > 0 ? [NSString stringWithFormat:@"%@\n%@", status, text] : status];
+}
+
+- (void)speechInputFinishedWithText:(NSString *)text {
+    [self showSpeechText:nil];
+    if (text != nil) {
+        const char* utf8String = [text UTF8String];
+        int err = LiSendUtf8TextEvent(utf8String, (unsigned int)strlen(utf8String));
+        if (err != 0) {
+            Log(LOG_W, @"Sending speech text failed: %d", err);
+        }
+    }
+}
+
+- (void)speechInputFailed:(NSString *)message {
+    [self showSpeechText:nil];
+    [self showNotice:message];
+}
+
+// Shows what is being heard over the stream, or hides it for nil
+- (void)showSpeechText:(NSString *)text {
+    if (text == nil) {
+        [speechLabel removeFromSuperview];
+        speechLabel = nil;
+        return;
+    }
+    
+    // The window, so that the stream being zoomed in does not move it
+    UIView* parent = self.window != nil ? self.window : self;
+    if (speechLabel == nil) {
+        speechLabel = [[UILabel alloc] init];
+        speechLabel.textColor = [UIColor whiteColor];
+        speechLabel.textAlignment = NSTextAlignmentCenter;
+        speechLabel.numberOfLines = 0;
+        speechLabel.backgroundColor = [UIColor colorWithWhite:0 alpha:0.6];
+        speechLabel.layer.cornerRadius = 8;
+        speechLabel.clipsToBounds = YES;
+        [parent addSubview:speechLabel];
+    }
+    speechLabel.text = text;
+    CGSize size = [speechLabel sizeThatFits:CGSizeMake(parent.bounds.size.width * 0.8 - 32, CGFLOAT_MAX)];
+    speechLabel.bounds = CGRectMake(0, 0, size.width + 32, size.height + 16);
+    speechLabel.center = CGPointMake(parent.bounds.size.width / 2, parent.bounds.size.height * 0.1 + size.height / 2);
+}
+
+- (void)willMoveToWindow:(UIWindow *)newWindow {
+    [super willMoveToWindow:newWindow];
+    
+    // The stream is ending
+    if (newWindow == nil) {
+        [speechInput cancel];
+    }
+}
+#endif
 
 // Shows a short message over the stream
 - (void)showNotice:(NSString *)text {

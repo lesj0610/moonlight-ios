@@ -58,6 +58,10 @@
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Moonlight uses the local network to connect to your gaming PC for streaming.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Moonlight listens when you press Globe-D, to type what you say on your gaming PC.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Moonlight turns what you say into text to type on your gaming PC.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIDesignRequiresCompatibility</key>

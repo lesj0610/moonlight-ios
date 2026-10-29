@@ -3,3 +3,5 @@
 "NSBluetoothAlwaysUsageDescription" = "Moonlight가 Citrix X1 마우스에 연결하려면 Bluetooth 접근이 필요합니다.";
 "NSBluetoothPeripheralUsageDescription" = "Moonlight가 Citrix X1 마우스에 연결하려면 Bluetooth 접근이 필요합니다.";
 "NSLocalNetworkUsageDescription" = "Moonlight는 스트리밍할 게임 PC에 연결하기 위해 로컬 네트워크를 사용합니다.";
+"NSMicrophoneUsageDescription" = "Moonlight는 지구본+D를 누르면 말한 내용을 게임 PC에 입력하기 위해 마이크로 듣습니다.";
+"NSSpeechRecognitionUsageDescription" = "Moonlight는 말한 내용을 게임 PC에 입력할 글자로 바꾸기 위해 음성 인식을 사용합니다.";

@@ -117,3 +117,9 @@
 /* StreamView.m */
 "Globe key: System" = "지구본 키: 시스템";
 "Globe key: Esc" = "지구본 키: Esc";
+"Listening in %@. Globe-D sends it." = "%@로 듣는 중 · 지구본+D로 보내기";
+"Speech recognition does not support the iPad's languages" = "음성 인식이 iPad의 언어를 지원하지 않습니다";
+"Allow the microphone and speech recognition for Moonlight in Settings" = "설정에서 Moonlight의 마이크와 음성 인식을 허용하세요";
+"Speech recognition is not available right now" = "지금은 음성 인식을 쓸 수 없습니다";
+"Could not start listening" = "듣기를 시작하지 못했습니다";
+"Speech recognition stopped" = "음성 인식이 멈췄습니다";
