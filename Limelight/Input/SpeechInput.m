@@ -239,7 +239,17 @@ static os_log_t speechLog(void) {
 
     NSString* previousText = heardText;
     if (result != nil) {
-        heardText = result.bestTranscription.formattedString;
+        NSString* text = result.bestTranscription.formattedString;
+        if (text.length < previousText.length || result.speechRecognitionMetadata != nil) {
+            os_log(speechLog(), "MLSPEECH result from %lu to %lu characters, final %d, metadata %d",
+                   (unsigned long)previousText.length, (unsigned long)text.length,
+                   result.isFinal, result.speechRecognitionMetadata != nil);
+        }
+        // The final text comes back empty when listening stops after a pause,
+        // so the text heard before it is kept
+        if (text.length > 0 || !result.isFinal) {
+            heardText = text;
+        }
     }
     if (state == SpeechInputHeld) {
         if (result != nil) {
