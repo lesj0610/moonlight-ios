@@ -731,7 +731,7 @@ static const long GLOBE_KEY_USAGE = 669;
 #if !TARGET_OS_TV
 - (void)speechInputShowsText:(NSString *)text inLanguage:(NSString *)language listening:(BOOL)listening {
     NSString* status = listening ?
-        [NSString stringWithFormat:NSLocalizedString(@"Listening in %@. Globe-D sends it.", nil), language] :
+        [NSString stringWithFormat:NSLocalizedString(@"Listening in %@. A pause or Globe-D sends it.", nil), language] :
         NSLocalizedString(@"Listening stopped. Globe-D sends what was heard.", nil);
     
     // The end of what was heard, since it can get long

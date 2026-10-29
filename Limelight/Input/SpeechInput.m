@@ -21,6 +21,10 @@ typedef NS_ENUM(NSInteger, SpeechInputState) {
 // How long to wait for the final text after listening stops
 static const NSTimeInterval FINAL_TEXT_TIMEOUT = 5.0;
 
+// How long nothing new is heard before the sentence counts as finished and
+// listening stops, as if Globe-D was pressed
+static const NSTimeInterval PAUSE_TIMEOUT = 1.5;
+
 // Public, so that it can be read from the system log. It never has the text.
 static os_log_t speechLog(void) {
     static os_log_t log;
@@ -43,6 +47,7 @@ static os_log_t speechLog(void) {
     AVAudioEngine* engine;
     NSString* languageName;
     NSString* heardText;
+    NSUInteger heardChanges;
 
     // The audio session as it was before listening
     BOOL sessionChanged;
@@ -232,6 +237,7 @@ static os_log_t speechLog(void) {
         return;
     }
 
+    NSString* previousText = heardText;
     if (result != nil) {
         heardText = result.bestTranscription.formattedString;
     }
@@ -242,8 +248,9 @@ static os_log_t speechLog(void) {
         return;
     }
     if (!result.isFinal && error == nil) {
-        if (state == SpeechInputListening) {
+        if (state == SpeechInputListening && ![heardText isEqualToString:previousText]) {
             [self.delegate speechInputShowsText:heardText inLanguage:languageName listening:YES];
+            [self stopAfterPause];
         }
         return;
     }
@@ -260,6 +267,18 @@ static os_log_t speechLog(void) {
         // It also ends by itself, after about a minute of server recognition
         [self holdText];
     }
+}
+
+// Stops listening unless something new is heard before the pause ends
+- (void)stopAfterPause {
+    NSUInteger changes = ++heardChanges;
+    NSUInteger current = generation;
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(PAUSE_TIMEOUT * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        if (current == self->generation && changes == self->heardChanges && self->state == SpeechInputListening) {
+            os_log(speechLog(), "MLSPEECH pause");
+            [self stop];
+        }
+    });
 }
 
 // Stops listening but keeps the task, so that a late final text still comes
