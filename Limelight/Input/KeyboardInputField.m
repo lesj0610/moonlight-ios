@@ -15,6 +15,8 @@ static NSMutableArray<NSString *>* diagEvents;
 static NSUInteger diagSequence;
 static NSUInteger diagOverwritten;
 static CFTimeInterval diagStart;
+static InputDiagMode diagMode = InputDiagModeSend;
+static NSUInteger diagTrial;
 
 @implementation InputDiagnostics
 
@@ -29,8 +31,10 @@ static CFTimeInterval diagStart;
         }
 
         diagSequence++;
-        [diagEvents addObject:[NSString stringWithFormat:@"%lu +%.1fms %@ %@",
-                               (unsigned long)diagSequence, (now - diagStart) * 1000, thread, event]];
+        NSString* line = [NSString stringWithFormat:@"%lu +%.1fms %@ %@",
+                          (unsigned long)diagSequence, (now - diagStart) * 1000, thread, event];
+        [diagEvents addObject:line];
+        NSLog(@"MLDIAG %@", line);
         if (diagEvents.count > DIAG_MAX_EVENTS) {
             [diagEvents removeObjectAtIndex:0];
             diagOverwritten++;
@@ -65,14 +69,51 @@ static CFTimeInterval diagStart;
     return description;
 }
 
++ (InputDiagMode)mode {
+    @synchronized ([InputDiagnostics class]) {
+        return diagMode;
+    }
+}
+
++ (NSString *)modeName {
+    switch ([InputDiagnostics mode]) {
+        case InputDiagModeSend:
+            return @"A";
+        case InputDiagModeKeep:
+            return @"B";
+        case InputDiagModeKeepEndCalls:
+            return @"C";
+    }
+    return @"?";
+}
+
++ (void)nextMode {
+    @synchronized ([InputDiagnostics class]) {
+        diagMode = (InputDiagMode)((diagMode + 1) % 3);
+    }
+}
+
++ (NSUInteger)beginTrial {
+    @synchronized ([InputDiagnostics class]) {
+        return ++diagTrial;
+    }
+}
+
++ (NSUInteger)trial {
+    @synchronized ([InputDiagnostics class]) {
+        return diagTrial;
+    }
+}
+
 + (NSString *)exportWithCount:(NSUInteger *)count {
     NSString* header;
     NSArray<NSString *>* events;
 
     @synchronized ([InputDiagnostics class]) {
         events = [diagEvents copy] ?: @[];
-        header = [NSString stringWithFormat:@"Moonlight input log: %lu events kept, %lu recorded, %lu overwritten, iOS %@, exported %@\n",
+        header = [NSString stringWithFormat:@"Moonlight input log: %lu events kept, %lu recorded, %lu overwritten, mode %@, trial %lu, iOS %@, exported %@\n",
                   (unsigned long)events.count, (unsigned long)diagSequence, (unsigned long)diagOverwritten,
+                  @[@"A", @"B", @"C"][diagMode], (unsigned long)diagTrial,
                   [[UIDevice currentDevice] systemVersion], [NSDate date]];
     }
 
@@ -86,6 +127,10 @@ static CFTimeInterval diagStart;
     // How deep the observed calls are nested, so that a call UIKit makes
     // from inside another is not taken for a separate input
     int diagDepth;
+
+    // Which optional methods UIKit has asked about since the field last
+    // became first responder, and the answers given
+    NSMutableSet<NSString *>* diagQueries;
 }
 
 - (UIEditingInteractionConfiguration) editingInteractionConfiguration {
@@ -159,9 +204,32 @@ static CFTimeInterval diagStart;
     return [UITextField instancesRespondToSelector:selector];
 }
 
+// Mode C claims the dictation end calls, which UITextField does not have
++ (BOOL)claimsEndCall:(SEL)selector {
+    return [InputDiagnostics mode] == InputDiagModeKeepEndCalls &&
+        (selector == @selector(dictationRecordingDidEnd) || selector == @selector(dictationRecognitionFailed));
+}
+
 - (BOOL)respondsToSelector:(SEL)selector {
-    if ([[KeyboardInputField diagOptionalSelectors] containsObject:NSStringFromSelector(selector)]) {
-        return [KeyboardInputField textFieldHas:selector];
+    NSString* name = NSStringFromSelector(selector);
+    if ([[KeyboardInputField diagOptionalSelectors] containsObject:name]) {
+        BOOL claimed = [KeyboardInputField textFieldHas:selector] || [KeyboardInputField claimsEndCall:selector];
+
+        // Recorded the first time in each editing session
+        NSString* query = [NSString stringWithFormat:@"%@ -> %d", name, claimed];
+        BOOL first;
+        @synchronized (self) {
+            if (diagQueries == nil) {
+                diagQueries = [NSMutableSet set];
+            }
+            first = ![diagQueries containsObject:query];
+            [diagQueries addObject:query];
+        }
+        if (first) {
+            [InputDiagnostics record:[NSString stringWithFormat:@"? respondsToSelector:%@ (mode %@)",
+                                      query, [InputDiagnostics modeName]]];
+        }
+        return claimed;
     }
     return [super respondsToSelector:selector];
 }
@@ -320,6 +388,9 @@ static CFTimeInterval diagStart;
 }
 
 - (BOOL)becomeFirstResponder {
+    @synchronized (self) {
+        [diagQueries removeAllObjects];
+    }
     [self diagBefore:@"becomeFirstResponder"];
     BOOL result = [super becomeFirstResponder];
     [self diagAfter:[NSString stringWithFormat:@"becomeFirstResponder -> %d", result]];

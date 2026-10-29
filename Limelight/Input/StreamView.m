@@ -395,13 +395,18 @@ static const long GLOBE_KEY_USAGE = 669;
         
         if ([[event allTouches] count] == 3) {
             if (isInputingText) {
-                DIAG(@"three-finger tap: close keyboard");
+                DIAG(@"three-finger tap: close keyboard, trial %lu mode %@ | %@",
+                     (unsigned long)[InputDiagnostics trial], [InputDiagnostics modeName], [keyInputField diagState]);
                 Log(LOG_D, @"Closing the keyboard");
                 [keyInputField resignFirstResponder];
                 isInputingText = false;
             } else {
                 Log(LOG_D, @"Opening the keyboard");
-                DIAG(@"three-finger tap: open keyboard | %@", [keyInputField diagOptionalMethods]);
+                NSUInteger trial = [InputDiagnostics beginTrial];
+                DIAG(@"three-finger tap: open keyboard, trial %lu mode %@ | %@",
+                     (unsigned long)trial, [InputDiagnostics modeName], [keyInputField diagOptionalMethods]);
+                [self showNotice:[NSString stringWithFormat:NSLocalizedString(@"Trial %lu, mode %@", nil),
+                                  (unsigned long)trial, [InputDiagnostics modeName]]];
                 // Prepare the textbox used to capture keyboard events.
                 keyInputField.delegate = self;
                 keyInputField.text = @"0";
@@ -469,7 +474,8 @@ static const long GLOBE_KEY_USAGE = 669;
     short keyCode = [objc_getAssociatedObject(sender, "keyCode") shortValue];
     // Close keyboard if done button clicked
     if (!keyCode) {
-        DIAG(@"toolbar Done: close keyboard");
+        DIAG(@"toolbar Done: close keyboard, trial %lu mode %@ | %@",
+             (unsigned long)[InputDiagnostics trial], [InputDiagnostics modeName], [keyInputField diagState]);
         [keyInputField resignFirstResponder];
         isInputingText = false;
     }
@@ -709,6 +715,28 @@ static const long GLOBE_KEY_USAGE = 669;
     }
     
 #if !TARGET_OS_TV
+    // Control-Option-Shift-M moves to the next diagnostic mode while the
+    // keyboard is closed, since UIKit may only ask what the field supports
+    // when editing starts
+    if (key.keyCode == UIKeyboardHIDUsageKeyboardM &&
+        (key.modifierFlags & (shortcut | UIKeyModifierCommand)) == shortcut) {
+        if (keyInputField.isFirstResponder) {
+            DIAG(@"mode shortcut while the keyboard is open, mode stays %@", [InputDiagnostics modeName]);
+            [self showNotice:NSLocalizedString(@"Close the keyboard to change the mode", nil)];
+        }
+        else {
+            [InputDiagnostics nextMode];
+            DIAG(@"mode shortcut: mode %@", [InputDiagnostics modeName]);
+            NSArray<NSString *>* notices = @[NSLocalizedString(@"Mode A: sends as before", nil),
+                                             NSLocalizedString(@"Mode B: sends nothing, keeps the text", nil),
+                                             NSLocalizedString(@"Mode C: B, and takes the dictation end calls", nil)];
+            [self showNotice:notices[[InputDiagnostics mode]]];
+        }
+        [keysDropped addObject:keyCode];
+        *toSystem = NO;
+        return YES;
+    }
+
     // Control-Option-Shift-L copies the input diagnostics
     if (key.keyCode == UIKeyboardHIDUsageKeyboardL &&
         (key.modifierFlags & (shortcut | UIKeyModifierCommand)) == shortcut) {
@@ -1086,6 +1114,18 @@ static const long GLOBE_KEY_USAGE = 669;
 - (void)onKeyboardPressed:(UITextField *)textField {
     NSString* inputText = textField.text;
     DIAG(@"EditingChanged | %@", [keyInputField diagState]);
+    
+    // Modes B and C leave the field to UIKit and only record it
+    if ([InputDiagnostics mode] != InputDiagModeSend) {
+        return;
+    }
+    
+    // U+FFFC is the placeholder UIKit puts in for a dictation result, not
+    // input. The sentinel in front is kept so that nothing reads as Backspace.
+    if (inputText.length > 1) {
+        NSString* typed = [[inputText substringFromIndex:1] stringByReplacingOccurrencesOfString:@"\uFFFC" withString:@""];
+        inputText = [[inputText substringToIndex:1] stringByAppendingString:typed];
+    }
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         // If the text became empty, we know the user pressed the backspace key.
         if ([inputText isEqual:@""]) {

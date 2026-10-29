@@ -118,3 +118,8 @@
 "Globe key: System" = "지구본 키: 시스템";
 "Globe key: Esc" = "지구본 키: Esc";
 "Input log copied (%lu events)" = "입력 기록 %lu개를 복사했습니다";
+"Trial %lu, mode %@" = "시험 %lu · 모드 %@";
+"Close the keyboard to change the mode" = "입력창을 닫은 뒤 모드를 바꾸세요";
+"Mode A: sends as before" = "모드 A: 기존대로 보냄";
+"Mode B: sends nothing, keeps the text" = "모드 B: 보내지 않고 남겨 둠";
+"Mode C: B, and takes the dictation end calls" = "모드 C: B + 받아쓰기 종료 알림 받음";
