@@ -23,7 +23,7 @@ static const NSTimeInterval FINAL_TEXT_TIMEOUT = 5.0;
 
 // How long nothing new is heard before the sentence counts as finished and
 // listening stops, as if Globe-D was pressed
-static const NSTimeInterval PAUSE_TIMEOUT = 1.5;
+static const NSTimeInterval PAUSE_TIMEOUT = 2.5;
 
 // Public, so that it can be read from the system log. It never has the text.
 static os_log_t speechLog(void) {
