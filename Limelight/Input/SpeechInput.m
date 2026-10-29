@@ -13,10 +13,13 @@ typedef NS_ENUM(NSInteger, SpeechInputState) {
     SpeechInputStarting,
     SpeechInputListening,
     SpeechInputFinishing,
+    // Recognition ended, or the final text is late, so the text waits for
+    // the user to ask for it
+    SpeechInputHeld,
 };
 
 // How long to wait for the final text after listening stops
-static const NSTimeInterval FINAL_TEXT_TIMEOUT = 2.0;
+static const NSTimeInterval FINAL_TEXT_TIMEOUT = 5.0;
 
 // Public, so that it can be read from the system log. It never has the text.
 static os_log_t speechLog(void) {
@@ -221,7 +224,7 @@ static os_log_t speechLog(void) {
     state = SpeechInputListening;
     languageName = [[NSLocale currentLocale] localizedStringForLanguageCode:[locale objectForKey:NSLocaleLanguageCode]] ?: locale.localeIdentifier;
     heardText = @"";
-    [self.delegate speechInputListeningInLanguage:languageName text:heardText];
+    [self.delegate speechInputShowsText:heardText inLanguage:languageName listening:YES];
 }
 
 - (void)handleResult:(SFSpeechRecognitionResult *)result error:(NSError *)error generation:(NSUInteger)current {
@@ -231,27 +234,50 @@ static os_log_t speechLog(void) {
 
     if (result != nil) {
         heardText = result.bestTranscription.formattedString;
-        if (!result.isFinal && state == SpeechInputListening) {
-            [self.delegate speechInputListeningInLanguage:languageName text:heardText];
+    }
+    if (state == SpeechInputHeld) {
+        if (result != nil) {
+            [self.delegate speechInputShowsText:heardText inLanguage:languageName listening:NO];
         }
+        return;
+    }
+    if (!result.isFinal && error == nil) {
+        if (state == SpeechInputListening) {
+            [self.delegate speechInputShowsText:heardText inLanguage:languageName listening:YES];
+        }
+        return;
     }
 
-    // It also ends by itself, after about a minute of server recognition
-    if (result.isFinal || error != nil) {
-        os_log(speechLog(), "MLSPEECH ended while %ld, final %d, %lu characters, error %{public}@ %ld",
-               (long)state, result.isFinal, (unsigned long)heardText.length, error.domain, (long)error.code);
-        if (state == SpeechInputListening && error != nil && heardText.length == 0) {
-            [self finishWithText:nil failure:NSLocalizedString(@"Speech recognition stopped", nil)];
-        }
-        else {
-            [self finishWithText:heardText failure:nil];
-        }
+    os_log(speechLog(), "MLSPEECH ended while %ld, final %d, %lu characters, error %{public}@ %ld",
+           (long)state, result.isFinal, (unsigned long)heardText.length, error.domain, (long)error.code);
+    if (result.isFinal && state == SpeechInputFinishing) {
+        [self finishWithText:heardText failure:nil];
     }
+    else if (heardText.length == 0) {
+        [self finishWithText:nil failure:state == SpeechInputListening ? NSLocalizedString(@"Speech recognition stopped", nil) : nil];
+    }
+    else {
+        // It also ends by itself, after about a minute of server recognition
+        [self holdText];
+    }
+}
+
+// Stops listening but keeps the task, so that a late final text still comes
+- (void)holdText {
+    state = SpeechInputHeld;
+    [self stopAudio];
+    [request endAudio];
+    [self restoreSession];
+    [self.delegate speechInputShowsText:heardText inLanguage:languageName listening:NO];
 }
 
 - (void)stop {
     if (state == SpeechInputStarting) {
         [self cancel];
+        return;
+    }
+    if (state == SpeechInputHeld) {
+        [self finishWithText:heardText failure:nil];
         return;
     }
     if (state != SpeechInputListening) {
@@ -265,9 +291,14 @@ static os_log_t speechLog(void) {
 
     NSUInteger current = generation;
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(FINAL_TEXT_TIMEOUT * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        if (current == self->generation) {
-            os_log(speechLog(), "MLSPEECH no final text in time");
-            [self finishWithText:self->heardText failure:nil];
+        if (current == self->generation && self->state == SpeechInputFinishing) {
+            os_log(speechLog(), "MLSPEECH no final text in time, %lu characters", (unsigned long)self->heardText.length);
+            if (self->heardText.length > 0) {
+                [self holdText];
+            }
+            else {
+                [self finishWithText:nil failure:nil];
+            }
         }
     });
 }
@@ -296,20 +327,23 @@ static os_log_t speechLog(void) {
     task = nil;
     request = nil;
     recognizer = nil;
-
-    if (sessionChanged) {
-        sessionChanged = NO;
-        NSError* error = nil;
-        if (![[AVAudioSession sharedInstance] setCategory:savedCategory mode:savedMode options:savedOptions error:&error]) {
-            os_log(speechLog(), "MLSPEECH session restore failed: %{public}@", error);
-        }
-    }
+    [self restoreSession];
 
     if (failure != nil) {
         [self.delegate speechInputFailed:failure];
     }
     else {
         [self.delegate speechInputFinishedWithText:text.length > 0 ? text : nil];
+    }
+}
+
+- (void)restoreSession {
+    if (sessionChanged) {
+        sessionChanged = NO;
+        NSError* error = nil;
+        if (![[AVAudioSession sharedInstance] setCategory:savedCategory mode:savedMode options:savedOptions error:&error]) {
+            os_log(speechLog(), "MLSPEECH session restore failed: %{public}@", error);
+        }
     }
 }
 

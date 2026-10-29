@@ -123,3 +123,4 @@
 "Speech recognition is not available right now" = "지금은 음성 인식을 쓸 수 없습니다";
 "Could not start listening" = "듣기를 시작하지 못했습니다";
 "Speech recognition stopped" = "음성 인식이 멈췄습니다";
+"Listening stopped. Globe-D sends what was heard." = "듣기가 멈췄습니다 · 지구본+D로 들은 내용 보내기";
