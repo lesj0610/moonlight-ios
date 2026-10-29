@@ -25,6 +25,8 @@ static const long GLOBE_KEY_USAGE = 669;
     
     KeyboardInputField* keyInputField;
     BOOL isInputingText;
+    // The text a change asked about would leave, until the text changes
+    NSString* askedText;
     NSMutableSet* keysDown;
     
     float streamAspectRatio;
@@ -1015,8 +1017,21 @@ static const long GLOBE_KEY_USAGE = 669;
     [keysDown removeAllObjects];
 }
 
+- (BOOL)textField:(UITextField *)textField shouldChangeCharactersInRange:(NSRange)range replacementString:(NSString *)string {
+    askedText = [textField.text stringByReplacingCharactersInRange:range withString:string];
+    return YES;
+}
+
 - (void)onKeyboardPressed:(UITextField *)textField {
     NSString* inputText = textField.text;
+    
+    // While dictation listens, it changes the text without asking, and
+    // resetting the field then cancels it. Only its result is asked about.
+    BOOL asked = [inputText isEqualToString:askedText];
+    askedText = nil;
+    if (!asked && textField.markedTextRange == nil) {
+        return;
+    }
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
         // If the text became empty, we know the user pressed the backspace key.
         if ([inputText isEqual:@""]) {
@@ -1026,11 +1041,13 @@ static const long GLOBE_KEY_USAGE = 669;
         } else {
             // Character 0 will be our known sentinel value
             
-            // Check if any characters exist which can't be represented in a basic key event
+            // Check if any characters exist which can't be represented in a basic key event.
+            // Several characters at once, as dictation inserts, are sent as text too, since
+            // separate key events are sent concurrently and can arrive out of order.
             for (int i = 1; i < [inputText length]; i++) {
                 struct KeyEvent event = [KeyboardSupport translateKeyEvent:[inputText characterAtIndex:i] withModifierFlags:0];
-                if (event.keycode == 0) {
-                    // We found an unknown key, so send the entire string as UTF-8
+                if (event.keycode == 0 || [inputText length] > 2) {
+                    // Send the entire string as UTF-8
                     const char* utf8String = [inputText UTF8String];
                     
                     // Skip the first character which is our sentinel
